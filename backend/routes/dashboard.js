@@ -73,7 +73,7 @@ router.patch('/alerts/:id/dismiss', verifyToken, requireRole('fleet_manager'), a
     const record = await ServiceRecord.findByIdAndUpdate(
       req.params.id,
       { alert_dismissed_at: new Date() },
-      { new: true }
+      { returnDocument: 'after' }
     );
     res.json(record);
   } catch (err) {

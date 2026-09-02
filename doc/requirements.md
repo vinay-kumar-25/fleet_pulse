@@ -1,6 +1,6 @@
 **Manager**
 
-1. Sign in with email and password
+1. Sign in with email and password == DONE
 2. Create new vehicles with registration number, make/model, current odometer, and service intervals
 3. Edit existing vehicle details
 4. Archive and restore vehicles

@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+:root {
+  --bg-main: #000000;
+  --bg-card: #09090b;
+  --border-color: #27272a;
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --accent-bg: #ffffff;
+  --accent-text: #000000;
+  --input-bg: #18181b;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Custom Reusable Theme Utility Classes */
+.theme-bg { background-color: var(--bg-main); }
+.theme-card { background-color: var(--bg-card); }
+.theme-border { border-color: var(--border-color); }
+.theme-text-primary { color: var(--text-primary); }
+.theme-text-secondary { color: var(--text-secondary); }
+.theme-accent { background-color: var(--accent-bg); color: var(--accent-text); }
+.theme-input { background-color: var(--input-bg); border-color: var(--border-color); color: var(--text-primary); }
