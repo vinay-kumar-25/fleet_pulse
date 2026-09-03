@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { useApp } from "../context/AppContext";
+import { useEffect, useState } from "react";
+import { useApp } from "../context/appContext";
+import { Link } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
+import VehicleServiceHistoryModal from "../components/VehicleServiceHistoryModal";
 import { Plus, Edit2, Archive, RefreshCw, FileUp } from "lucide-react";
 
 export default function Vehicles() {
@@ -9,10 +11,14 @@ export default function Vehicles() {
   const [includeArchived, setIncludeArchived] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
+  const [historyVehicle, setHistoryVehicle] = useState(null);
+  const [csvFile, setCsvFile] = useState(null);
+  const [uploadReport, setUploadReport] = useState(null);
 
   const [formData, setFormData] = useState({
     registration_number: "",
-    make_model: "",
+    make: "",
+    model: "",
     current_odometer: 0,
     mileage_interval: 10000,
     date_interval_days: 180,
@@ -30,14 +36,32 @@ export default function Vehicles() {
   };
 
   useEffect(() => {
-    fetchVehicles();
+    let isMounted = true;
+
+    const runFetch = async () => {
+      try {
+        const res = await axiosClient.get(
+          `/vehicles?include_archived=${includeArchived}`
+        );
+        if (isMounted) setVehicles(res.data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void runFetch();
+
+    return () => {
+      isMounted = false;
+    };
   }, [includeArchived]);
 
   const handleOpenCreate = () => {
     setEditingVehicle(null);
     setFormData({
       registration_number: "",
-      make_model: "",
+      make: "",
+      model: "",
       current_odometer: 0,
       mileage_interval: 10000,
       date_interval_days: 180,
@@ -49,7 +73,8 @@ export default function Vehicles() {
     setEditingVehicle(vehicle);
     setFormData({
       registration_number: vehicle.registration_number,
-      make_model: vehicle.make_model,
+      make: vehicle.make,
+      model: vehicle.model,
       current_odometer: vehicle.current_odometer,
       mileage_interval: vehicle.mileage_interval,
       date_interval_days: vehicle.date_interval_days,
@@ -79,8 +104,23 @@ export default function Vehicles() {
         : `/vehicles/${id}/archive`;
       await axiosClient.patch(endpoint);
       fetchVehicles();
-    } catch (err) {
+    } catch (error) {
+      console.error(error);
       alert("Failed to update archive status");
+    }
+  };
+
+  const handleCSVSubmit = async (event) => {
+    event.preventDefault();
+    if (!csvFile) return;
+    const formData = new FormData();
+    formData.append('file', csvFile);
+    try {
+      const res = await axiosClient.post('/vehicles/bulk-odometer', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setUploadReport(res.data.report);
+      await fetchVehicles();
+    } catch (error) {
+      alert(error.response?.data?.error || 'CSV upload failed');
     }
   };
 
@@ -116,7 +156,7 @@ export default function Vehicles() {
 
       {/* 7. View all vehicles and complete fleet data */}
       <div
-        className={`overflow-x-auto rounded-lg border ${activeTheme.border} ${activeTheme.cardBg}`}
+        className={`mac-card overflow-x-auto ${activeTheme.card}`}
       >
         <table className="w-full text-left text-sm">
           <thead
@@ -134,8 +174,8 @@ export default function Vehicles() {
           <tbody className={`divide-y ${activeTheme.border}`}>
             {vehicles.map((v) => (
               <tr key={v._id}>
-                <td className="p-4 font-bold">{v.registration_number}</td>
-                <td className="p-4">{v.make_model}</td>
+                <td className="p-4 font-bold"><Link to={`/vehicles/${v._id}`} className="hover:underline">{v.registration_number}</Link></td>
+                <td className="p-4">{v.make} {v.model}</td>
                 <td className="p-4">
                   {v.current_odometer.toLocaleString()} mi
                 </td>
@@ -156,14 +196,21 @@ export default function Vehicles() {
                 </td>
                 <td className="p-4 text-right flex justify-end gap-2">
                   <button
+                    type="button"
+                    onClick={() => setHistoryVehicle(v)}
+                    className="p-1 text-xs hover:text-emerald-400"
+                  >
+                    History
+                  </button>
+                  <button
                     onClick={() => handleOpenEdit(v)}
-                    className="p-1 hover:text-blue-400"
+                    className="mac-icon-button hover:text-blue-400"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => toggleArchive(v._id, v.is_archived)}
-                    className="p-1 hover:text-amber-400"
+                    className="mac-icon-button hover:text-amber-400"
                   >
                     {v.is_archived ? (
                       <RefreshCw className="w-4 h-4" />
@@ -180,9 +227,9 @@ export default function Vehicles() {
 
       {/* 2 & 3. Create/Edit Vehicle Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl">
           <div
-            className={`w-full max-w-md p-6 rounded-xl border ${activeTheme.border} ${activeTheme.cardBg} space-y-4`}
+            className={`mac-card w-full max-w-md space-y-4 p-6 ${activeTheme.card}`}
           >
             <h3 className="text-lg font-bold">
               {editingVehicle ? "Edit Vehicle" : "Create New Vehicle"}
@@ -197,7 +244,7 @@ export default function Vehicles() {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. REG-1001 or ABC-1234"
+                    placeholder="e.g. MH12AB1234"
                     value={formData.registration_number}
                     onChange={(e) =>
                       setFormData({
@@ -205,21 +252,35 @@ export default function Vehicles() {
                         registration_number: e.target.value,
                       })
                     }
-                    className={`w-full p-2 rounded border outline-none ${activeTheme.inputBg}`}
+                    className={`mac-input w-full p-3 ${activeTheme.input}`}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block font-medium mb-1">Make & Model</label>
+                  <label className="block font-medium mb-1">Make</label>
                   <input
                     type="text"
-                    placeholder="e.g. Ford Transit or Toyota HiAce"
-                    value={formData.make_model}
+                    placeholder="e.g. Ford"
+                    value={formData.make}
                     onChange={(e) =>
-                      setFormData({ ...formData, make_model: e.target.value })
+                      setFormData({ ...formData, make: e.target.value })
                     }
-                    className={`w-full p-2 rounded border outline-none ${activeTheme.inputBg}`}
+                    className={`mac-input w-full p-3 ${activeTheme.input}`}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-medium mb-1">Model</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Transit 2022"
+                    value={formData.model}
+                    onChange={(e) =>
+                      setFormData({ ...formData, model: e.target.value })
+                    }
+                    className={`mac-input w-full p-3 ${activeTheme.input}`}
                     required
                   />
                 </div>
@@ -238,14 +299,14 @@ export default function Vehicles() {
                         current_odometer: Number(e.target.value),
                       })
                     }
-                    className={`w-full p-2 rounded border outline-none ${activeTheme.inputBg}`}
+                    className={`mac-input w-full p-3 ${activeTheme.input}`}
                     required
                   />
                 </div>
               </div>
 
               {/* Maintenance Intervals Section */}
-              <div className="pt-2 border-t border-zinc-700/50">
+              <div className={`border-t pt-2 ${activeTheme.border}`}>
                 <p
                   className={`font-semibold mb-2 ${activeTheme.textSecondary}`}
                 >
@@ -266,7 +327,7 @@ export default function Vehicles() {
                           mileage_interval: Number(e.target.value),
                         })
                       }
-                      className={`w-full p-2 rounded border outline-none ${activeTheme.inputBg}`}
+                      className={`mac-input w-full p-3 ${activeTheme.input}`}
                       required
                     />
                     <span className="text-[10px] text-zinc-400">
@@ -288,7 +349,7 @@ export default function Vehicles() {
                           date_interval_days: Number(e.target.value),
                         })
                       }
-                      className={`w-full p-2 rounded border outline-none ${activeTheme.inputBg}`}
+                      className={`mac-input w-full p-3 ${activeTheme.input}`}
                       required
                     />
                     <span className="text-[10px] text-zinc-400">
@@ -299,11 +360,11 @@ export default function Vehicles() {
               </div>
 
               {/* Form Actions */}
-              <div className="flex justify-end gap-2 pt-3 border-t border-zinc-700/50">
+              <div className={`flex justify-end gap-2 border-t pt-3 ${activeTheme.border}`}>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-xs rounded border border-zinc-700 hover:bg-zinc-800 transition"
+                  className={`mac-button px-4 py-2 text-xs ${activeTheme.buttonSecondary}`}
                 >
                   Cancel
                 </button>
@@ -317,6 +378,22 @@ export default function Vehicles() {
             </form>
           </div>
         </div>
+      )}
+
+      <section className={`mac-card p-4 ${activeTheme.card}`}>
+        <h2 className="font-bold mb-3">Bulk odometer update</h2>
+        <form onSubmit={handleCSVSubmit} className="flex flex-wrap gap-2">
+          <input type="file" accept=".csv" required onChange={(event) => setCsvFile(event.target.files[0])} className={`mac-input text-xs p-2 ${activeTheme.input}`} />
+          <button type="submit" className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-bold ${activeTheme.accent}`}><FileUp className="w-4 h-4" /> Upload CSV</button>
+        </form>
+        {uploadReport && <div className="mt-3 space-y-1 text-xs">{uploadReport.map((row) => <div key={row.row}>{row.registration_number}: {row.status}{row.reason ? ` - ${row.reason}` : ''}</div>)}</div>}
+      </section>
+
+      {historyVehicle && (
+        <VehicleServiceHistoryModal
+          vehicle={historyVehicle}
+          onClose={() => setHistoryVehicle(null)}
+        />
       )}
     </div>
   );

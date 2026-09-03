@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContext';
 import axiosClient from '../api/axiosClient';
 import { Truck, Lock, Mail } from 'lucide-react';
 
@@ -33,10 +33,10 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[85vh] px-4">
-      <div className={`w-full max-w-md p-8 rounded-xl border ${activeTheme.border} ${activeTheme.cardBg} shadow-2xl`}>
+    <div className={`flex min-h-[85vh] items-center justify-center px-4 ${activeTheme.gradient}`}>
+      <div className={`mac-card w-full max-w-md p-8 ${activeTheme.card}`}>
         <div className="flex flex-col items-center mb-6">
-          <div className="p-3 bg-emerald-500/10 rounded-full mb-2">
+          <div className={`mb-2 rounded-full p-3 ${activeTheme.info}`}>
             <Truck className="w-10 h-10 text-emerald-500" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight">Fleet Portal Sign In</h2>
@@ -44,7 +44,7 @@ export default function Login() {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/30 text-red-500 text-sm">
+          <div className={`mb-4 rounded-xl p-3 text-sm ${activeTheme.danger}`}>
             {error}
           </div>
         )}
@@ -61,7 +61,7 @@ export default function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 text-sm rounded-md border outline-none ${activeTheme.inputBg}`}
+                className={`mac-input w-full py-2 pl-10 pr-4 text-sm ${activeTheme.input}`}
                 placeholder="manager@fleet.com"
               />
             </div>
@@ -78,7 +78,7 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 text-sm rounded-md border outline-none ${activeTheme.inputBg}`}
+                className={`mac-input w-full py-2 pl-10 pr-4 text-sm ${activeTheme.input}`}
                 placeholder="••••••••"
               />
             </div>
@@ -87,7 +87,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-2.5 rounded-md font-semibold text-sm transition-all ${activeTheme.accent}`}
+            className={`mac-button w-full py-3 text-sm font-semibold ${activeTheme.button}`}
           >
             {loading ? 'Authenticating...' : 'Sign In'}
           </button>
