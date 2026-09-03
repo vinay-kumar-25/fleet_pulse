@@ -26,7 +26,8 @@ export default function Login() {
         navigate('/my-assignments');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Authentication failed');
+      const responseMessage = err.response?.data?.message || err.response?.data?.error;
+      setError(typeof responseMessage === 'string' ? responseMessage : responseMessage?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -45,7 +46,7 @@ export default function Login() {
 
         {error && (
           <div className={`mb-4 rounded-xl p-3 text-sm ${activeTheme.danger}`}>
-            {error}
+            {typeof error === 'string' ? error : error?.message || 'Login failed'}
           </div>
         )}
 
