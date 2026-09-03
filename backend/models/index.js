@@ -28,11 +28,17 @@ const vehicleSchema = new mongoose.Schema({
     required: [true, 'Registration number is required'],
     unique: true,
     uppercase: true,
+    trim: true,
+    match: [/^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{4}$/, 'Please enter a valid Indian vehicle registration number']
+  },
+  make: {
+    type: String,
+    required: [true, 'Make is required'],
     trim: true
   },
-  make_model: {
+  model: {
     type: String,
-    required: [true, 'Make and model are required'],
+    required: [true, 'Model is required'],
     trim: true
   },
   current_odometer: {
@@ -55,6 +61,15 @@ const vehicleSchema = new mongoose.Schema({
     default: 7,
     min: [0, 'Grace period cannot be negative']
   },
+  last_service_at: {
+    type: Date,
+    default: null
+  },
+  last_service_odometer: {
+    type: Number,
+    default: null,
+    min: [0, 'Last service odometer cannot be negative']
+  },
   is_archived: {
     type: Boolean,
     default: false,
@@ -67,6 +82,11 @@ vehicleSchema.index({ is_archived: 1, registration_number: 1 });
 
 // 3. Service Record Schema
 const serviceRecordSchema = new mongoose.Schema({
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   vehicle_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vehicle',
@@ -106,6 +126,11 @@ const serviceRecordSchema = new mongoose.Schema({
   alert_dismissed_at: {
     type: Date,
     default: null
+  },
+  due_at: {
+    type: Date,
+    default: Date.now,
+    index: true
   }
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
@@ -143,7 +168,11 @@ const timelineEventSchema = new mongoose.Schema({
 }, { timestamps: { createdAt: 'created_at', updatedAt: false } });
 
 // Block edits/updates to enforce immutability at model layer
-timelineEventSchema.pre(['updateOne', 'findOneAndUpdate', 'updateMany'], function () {
+timelineEventSchema.pre(['updateOne', 'findOneAndUpdate', 'updateMany', 'deleteOne', 'deleteMany', 'findOneAndDelete'], function () {
+  throw new Error('Timeline events are strictly immutable and cannot be modified.');
+});
+
+timelineEventSchema.pre('deleteOne', { document: true, query: false }, function () {
   throw new Error('Timeline events are strictly immutable and cannot be modified.');
 });
 
