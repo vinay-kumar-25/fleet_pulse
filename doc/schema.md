@@ -14,7 +14,8 @@ CREATE TABLE users (
 CREATE TABLE vehicles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     registration_number VARCHAR(50) UNIQUE NOT NULL,
-    make_model VARCHAR(255) NOT NULL,
+    make VARCHAR(255) NOT NULL,
+    model VARCHAR(255) NOT NULL,
     current_odometer INT NOT NULL CHECK (current_odometer >= 0),
     date_interval_days INT NOT NULL CHECK (date_interval_days > 0), -- Service due interval in days
     mileage_interval INT NOT NULL CHECK (mileage_interval > 0),    -- Service due interval in miles/km

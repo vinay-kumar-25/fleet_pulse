@@ -13,3 +13,7 @@
 7. ok so give me the all the files one by one with proper handeling of all the requirements and keep the theme file seperate so that i can change the theme according to my own , or basically make it multi theme like black dark neon minimal etc , also keep the ui consitent all over the system and make it responsive for phone also 
 
 8. all pages are ok now , but theme is not visible in the website , so i want the proper reason and the resolve so that it doesn't break
+
+9. check the complete project and tell me what requirement are not fulfilling till now , and what change are required . give me the list of such changes and do not do anything in the project just give the list 
+
+10. I ALSO WANT TO SHOW TO A BUTTON ON THE EVERY VEHICLE TO SHOW IT'S SERVICE HISTORY WICH WE CAN EXPAND TO SHOW THE DESCRIPTION FROM THE LIST FO SERVICES ACCORDIG TO THE DATE  , AND CAN EXPORT AS A CSV FILE , ALSO THAT HISTORY MUST BE IMMUTABLE AND CANNOT BE CHANGED BY ANYONE INCLUDEING THE ADMIN. ALSO INCLUDE THe due booked status updation feature on  the technician side so that he can complete his work , also service history for every vehicle on click must contain the service completed date and the description given by the admin
