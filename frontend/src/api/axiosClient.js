@@ -1,7 +1,15 @@
 import axios from 'axios';
 
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-const apiBaseUrl = configuredBaseUrl.replace(/\/+$/, '').replace(/\/api$/i, '') + '/api';
+const extractApiUrl = (value) => {
+  const markdownTarget = value.match(/\]\(([^)]+)\)/)?.[1];
+  const url = (markdownTarget || value).trim();
+  return url.replace(/^(https?):\/{1,2}/i, '$1://');
+};
+
+const apiBaseUrl = extractApiUrl(configuredBaseUrl)
+  .replace(/\/+$/, '')
+  .replace(/\/api$/i, '') + '/api';
 
 const axiosClient = axios.create({
   baseURL: apiBaseUrl,
