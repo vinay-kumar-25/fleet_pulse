@@ -1,27 +1,108 @@
 @import "tailwindcss";
 
-:root {
-  --bg-main: #000000;
-  --bg-card: #09090b;
-  --border-color: #27272a;
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
-  --accent-bg: #ffffff;
-  --accent-text: #000000;
-  --input-bg: #18181b;
+/* Apple & Inter System Typography Stack */
+@layer base {
+  :root {
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
+    
+    /* Default Dark Mode (Apple Pro Dark) */
+    --bg-main: #000000;
+    --bg-card: rgba(24, 24, 27, 0.6);
+    --bg-sidebar: rgba(9, 9, 11, 0.8);
+    --border-color: rgba(39, 39, 42, 0.8);
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --accent-bg: #3b82f6;
+    --accent-text: #ffffff;
+    --input-bg: rgba(9, 9, 11, 0.7);
+  }
+
+  /* Light Mode Overrides */
+  :root:not(.dark) {
+    --bg-main: #fafafa;
+    --bg-card: rgba(255, 255, 255, 0.8);
+    --bg-sidebar: rgba(244, 244, 245, 0.8);
+    --border-color: rgba(228, 228, 231, 0.8);
+    --text-primary: #18181b;
+    --text-secondary: #71717a;
+    --text-muted: #a1a1aa;
+    --accent-bg: #2563eb;
+    --accent-text: #ffffff;
+    --input-bg: rgba(244, 244, 245, 0.7);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: 0;
+  }
 }
 
-body {
-  background-color: var(--bg-main);
-  color: var(--text-primary);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-/* Custom Reusable Theme Utility Classes */
+/* Apple Glassmorphism & Reusable Utility Classes */
 .theme-bg { background-color: var(--bg-main); }
-.theme-card { background-color: var(--bg-card); }
+.theme-card { 
+  background-color: var(--bg-card); 
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.theme-sidebar { 
+  background-color: var(--bg-sidebar); 
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
 .theme-border { border-color: var(--border-color); }
 .theme-text-primary { color: var(--text-primary); }
 .theme-text-secondary { color: var(--text-secondary); }
-.theme-accent { background-color: var(--accent-bg); color: var(--accent-text); }
-.theme-input { background-color: var(--input-bg); border-color: var(--border-color); color: var(--text-primary); }
+.theme-text-muted { color: var(--text-muted); }
+.theme-accent { 
+  background-color: var(--accent-bg); 
+  color: var(--accent-text); 
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.theme-accent:active { transform: scale(0.97); }
+.theme-input { 
+  background-color: var(--input-bg); 
+  border-color: var(--border-color); 
+  color: var(--text-primary); 
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@layer components {
+  .mac-card {
+    @apply rounded-2xl border shadow-sm backdrop-blur-2xl;
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+  }
+
+  .mac-input {
+    @apply rounded-xl border outline-none transition-all duration-200;
+    background-color: var(--input-bg);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+  }
+
+  .mac-input:focus {
+    @apply border-blue-500 ring-1 ring-blue-500/30;
+  }
+
+  .mac-button {
+    @apply rounded-full transition-all duration-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .mac-icon-button {
+    @apply rounded-full border p-2 transition-all duration-200 active:scale-95;
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+  }
+
+  .mac-icon-button:hover {
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+  }
+}

@@ -13,25 +13,46 @@ export const AppProvider = ({ children }) => {
     return token ? { token, role, email } : null;
   });
 
-  const [currentThemeKey, setCurrentThemeKey] = useState(() => localStorage.getItem('theme') || 'aurora');
+  // 1. Fallback to 'dark' or 'light' if localStorage contains an obsolete key (e.g., 'pearl', 'obsidian')
+  const [currentThemeKey, setCurrentThemeKey] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved && themes[saved] ? saved : 'dark';
+  });
+
   const [alertCount, setAlertCount] = useState(0);
 
-  const activeTheme = themes[currentThemeKey] || themes.aurora;
+  // Safely fallback to dark theme if currentThemeKey is invalid
+  const activeTheme = themes[currentThemeKey] || themes.dark;
+  const isDarkMode = currentThemeKey === 'dark';
 
   useEffect(() => {
     const root = document.documentElement;
+
+    // Apply root CSS variables for dynamic styling
     if (activeTheme && activeTheme.vars) {
       Object.entries(activeTheme.vars).forEach(([key, val]) => {
         root.style.setProperty(key, val);
       });
     }
+
+    // Toggle Tailwind CSS 'dark' class on root for standard utility support
+    if (isDarkMode) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+
     localStorage.setItem('theme', currentThemeKey);
-  }, [currentThemeKey, activeTheme]);
+  }, [currentThemeKey, activeTheme, isDarkMode]);
 
   const setTheme = (key) => {
     if (themes[key]) {
       setCurrentThemeKey(key);
     }
+  };
+
+  const toggleTheme = () => {
+    setCurrentThemeKey((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
   const login = (data) => {
@@ -99,12 +120,14 @@ export const AppProvider = ({ children }) => {
         activeTheme,
         currentThemeKey,
         setTheme,
+        toggleTheme,
+        isDarkMode,
         alertCount,
         refreshAlerts: fetchAlertCount,
         themes,
       }}
     >
-      <div className={`min-h-screen ${activeTheme.bg} ${activeTheme.textPrimary} transition-colors duration-200`}>
+      <div className={`min-h-screen ${activeTheme.bg} ${activeTheme.textPrimary} transition-colors duration-300 font-sans antialiased selection:bg-blue-500 selection:text-white`}>
         {children}
       </div>
     </AppContext.Provider>

@@ -1,4 +1,154 @@
 export const themes = {
+
+  // =========================================================
+  // 1. DARK MODE — Apple Pro Dark (Frosted Glass & Vibrancy)
+  // =========================================================
+  dark: {
+    name: "dark",
+
+    bg: "bg-black",
+    cardBg: "bg-zinc-900/60 backdrop-blur-2xl",
+    sidebarBg: "bg-zinc-950/80 backdrop-blur-2xl",
+
+    border: "border-zinc-800/80",
+    borderHover: "hover:border-zinc-700",
+
+    textPrimary: "text-zinc-100",
+    textSecondary: "text-zinc-400",
+    textMuted: "text-zinc-500",
+
+    accent:
+      "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm shadow-blue-500/20 active:scale-95 transition-all duration-200",
+
+    accentBorder: "border-blue-500/30",
+
+    gradient:
+      "bg-gradient-to-br from-zinc-900 via-black to-zinc-950",
+
+    gradientText:
+      "bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent",
+
+    glow:
+      "shadow-[0_0_40px_rgba(255,255,255,0.03)]",
+
+    card:
+      "bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-2xl shadow-sm",
+
+    cardHover:
+      "hover:border-zinc-700 hover:bg-zinc-900/80 transition-all duration-300",
+
+    badge:
+      "bg-zinc-800/80 text-zinc-200 border border-zinc-700/60 backdrop-blur-md",
+
+    input:
+      "bg-zinc-950/70 border-zinc-800/80 text-zinc-100 placeholder:text-zinc-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30",
+
+    button:
+      "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm shadow-blue-500/20 active:scale-95 transition-all duration-200",
+
+    buttonSecondary:
+      "bg-zinc-800/80 text-zinc-200 border border-zinc-700/60 hover:bg-zinc-700/80 active:scale-95 transition-all duration-200",
+
+    success:
+      "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 backdrop-blur-md",
+
+    warning:
+      "bg-amber-500/10 text-amber-400 border border-amber-500/20 backdrop-blur-md",
+
+    danger:
+      "bg-rose-500/10 text-rose-400 border border-rose-500/20 backdrop-blur-md",
+
+    info:
+      "bg-blue-500/10 text-blue-400 border border-blue-500/20 backdrop-blur-md",
+
+    vars: {
+      "--bg-main": "#000000",
+      "--bg-card": "rgba(24, 24, 27, 0.6)",
+      "--bg-sidebar": "rgba(9, 9, 11, 0.8)",
+      "--border-color": "rgba(39, 39, 42, 0.8)",
+      "--text-primary": "#f4f4f5",
+      "--text-secondary": "#a1a1aa",
+      "--text-muted": "#71717a",
+      "--accent-bg": "#3b82f6",
+      "--accent-text": "#ffffff",
+      "--input-bg": "#09090b"
+    }
+  },
+
+  // =========================================================
+  // 2. LIGHT MODE — Apple Pro Light (Translucent Pearl)
+  // =========================================================
+  light: {
+    name: "light",
+
+    bg: "bg-zinc-50",
+    cardBg: "bg-white/80 backdrop-blur-2xl",
+    sidebarBg: "bg-zinc-100/80 backdrop-blur-2xl",
+
+    border: "border-zinc-200/80",
+    borderHover: "hover:border-zinc-300",
+
+    textPrimary: "text-zinc-900",
+    textSecondary: "text-zinc-500",
+    textMuted: "text-zinc-400",
+
+    accent:
+      "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-sm shadow-blue-500/20 active:scale-95 transition-all duration-200",
+
+    accentBorder: "border-blue-600/30",
+
+    gradient:
+      "bg-gradient-to-br from-white via-zinc-50 to-zinc-100",
+
+    gradientText:
+      "bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-500 bg-clip-text text-transparent",
+
+    glow:
+      "shadow-[0_10px_40px_rgba(0,0,0,0.04)]",
+
+    card:
+      "bg-white/80 border border-zinc-200/80 backdrop-blur-2xl shadow-sm",
+
+    cardHover:
+      "hover:border-zinc-300 hover:shadow-md transition-all duration-300",
+
+    badge:
+      "bg-zinc-100 text-zinc-700 border border-zinc-200 backdrop-blur-md",
+
+    input:
+      "bg-zinc-100/70 border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30",
+
+    button:
+      "bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white shadow-sm shadow-blue-500/20 active:scale-95 transition-all duration-200",
+
+    buttonSecondary:
+      "bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-50 active:scale-95 transition-all duration-200",
+
+    success:
+      "bg-emerald-50 text-emerald-700 border border-emerald-200 backdrop-blur-md",
+
+    warning:
+      "bg-amber-50 text-amber-700 border border-amber-200 backdrop-blur-md",
+
+    danger:
+      "bg-rose-50 text-rose-700 border border-rose-200 backdrop-blur-md",
+
+    info:
+      "bg-blue-50 text-blue-700 border border-blue-200 backdrop-blur-md",
+
+    vars: {
+      "--bg-main": "#fafafa",
+      "--bg-card": "rgba(255, 255, 255, 0.8)",
+      "--bg-sidebar": "rgba(244, 244, 245, 0.8)",
+      "--border-color": "rgba(228, 228, 231, 0.8)",
+      "--text-primary": "#18181b",
+      "--text-secondary": "#71717a",
+      "--text-muted": "#a1a1aa",
+      "--accent-bg": "#2563eb",
+      "--accent-text": "#ffffff",
+      "--input-bg": "#f4f4f5"
+    }
+  },
 // =========================================================
 // 1. OBSIDIAN — Premium OLED / Black
 // =========================================================

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/appContext';
 import { themes } from '../theme/themes';
 import { Shield, Truck, ClipboardList, AlertTriangle, LogOut, Menu, X, Palette } from 'lucide-react';
 
@@ -29,7 +29,7 @@ export default function Navbar() {
     : [{ name: 'My Assignments', path: '/my-assignments', icon: ClipboardList }];
 
   return (
-    <nav className={`border-b ${activeTheme.border} ${activeTheme.cardBg} sticky top-0 z-50`}>
+    <nav className={`sticky top-0 z-50 border-b ${activeTheme.border} ${activeTheme.sidebarBg} backdrop-blur-2xl`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
@@ -45,14 +45,14 @@ export default function Navbar() {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-95 ${
                     isActive ? activeTheme.accent : `${activeTheme.textSecondary} hover:${activeTheme.textPrimary}`
                   }`}
                 >
                   <Icon className="w-4 h-4" />
                   {link.name}
                   {link.badge > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 text-xs font-bold bg-red-600 text-white rounded-full">
+                    <span className="ml-1 px-1.5 py-0.5 text-xs font-bold bg-red-500/15 text-red-500 rounded-full">
                       {link.badge}
                     </span>
                   )}
@@ -67,7 +67,7 @@ export default function Navbar() {
               <select
                 value={currentThemeKey}
                 onChange={(e) => setTheme(e.target.value)}
-                className={`text-xs p-1 rounded border ${activeTheme.inputBg} ${activeTheme.border}`}
+                className={`mac-input text-xs p-1.5 ${activeTheme.input}`}
               >
                 {Object.keys(themes).map((key) => (
                   <option key={key} value={key}>
@@ -85,7 +85,7 @@ export default function Navbar() {
 
             <button
               onClick={handleLogout}
-              className={`p-2 rounded-md border ${activeTheme.border} hover:bg-red-500/10 hover:text-red-500 transition-colors ${activeTheme.textSecondary}`}
+              className="mac-icon-button hover:text-red-500"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
@@ -95,7 +95,7 @@ export default function Navbar() {
           <div className="md:hidden flex items-center gap-2">
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className={`p-2 rounded-md border ${activeTheme.border} ${activeTheme.textSecondary}`}
+              className="mac-icon-button"
             >
               {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -104,7 +104,7 @@ export default function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className={`md:hidden border-t ${activeTheme.border} ${activeTheme.cardBg} px-4 pt-2 pb-4 space-y-2`}>
+        <div className={`md:hidden border-t ${activeTheme.border} ${activeTheme.sidebarBg} backdrop-blur-2xl px-4 pt-2 pb-4 space-y-2`}>
           {navLinks.map((link) => {
             const Icon = link.icon;
             return (
@@ -112,7 +112,7 @@ export default function Navbar() {
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center justify-between px-3 py-2 rounded-md text-base font-medium ${
+                className={`flex items-center justify-between px-3 py-2 rounded-full text-base font-medium transition-all duration-200 active:scale-95 ${
                   location.pathname === link.path ? activeTheme.accent : activeTheme.textSecondary
                 }`}
               >
@@ -132,7 +132,7 @@ export default function Navbar() {
             <select
               value={currentThemeKey}
               onChange={(e) => setTheme(e.target.value)}
-              className={`text-sm p-1.5 rounded border ${activeTheme.inputBg} ${activeTheme.border}`}
+              className={`mac-input text-sm p-1.5 ${activeTheme.input}`}
             >
               {Object.keys(themes).map((key) => (
                 <option key={key} value={key}>
@@ -142,7 +142,7 @@ export default function Navbar() {
             </select>
             <button
               onClick={handleLogout}
-              className={`flex items-center gap-2 text-sm font-medium px-3 py-1.5 text-red-500`}
+              className="mac-button flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-500"
             >
               <LogOut className="w-4 h-4" /> Sign Out
             </button>

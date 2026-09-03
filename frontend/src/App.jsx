@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppProvider, useApp } from './context/AppContext';
+import { AppProvider, useApp } from './context/appContext';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Vehicles from './pages/Vehicles';
+import VehicleDetails from './pages/VehicleDetails';
 import ServiceRecords from './pages/ServiceRecords';
 import MyAssignments from './pages/MyAssignments';
 import Alerts from './pages/Alerts';  
@@ -41,6 +42,14 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={['fleet_manager']}>
                 <Vehicles />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vehicles/:id"
+            element={
+              <ProtectedRoute allowedRoles={['fleet_manager']}>
+                <VehicleDetails />
               </ProtectedRoute>
             }
           />
