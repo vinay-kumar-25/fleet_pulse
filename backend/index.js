@@ -1,15 +1,34 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
+const cors = require('cors'); // Ek baar require karna kafi hai
 
 const app = express();
 
-// Middleware
+// CORS Configuration
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'http://localhost:3000'
+].map(url => url?.trim().replace(/\/+$/, '')).filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const cleanOrigin = origin.trim().replace(/\/+$/, '');
+    if (allowedOrigins.includes(cleanOrigin) || cleanOrigin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS policy violation'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+app.options('*', cors());
+
+// Middleware
 app.use(express.json());
 
 // Database Connection
