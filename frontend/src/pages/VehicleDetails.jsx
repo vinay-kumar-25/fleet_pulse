@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useApp } from '../context/appContext';
+import { useApp } from '../context/AppContext';
 import axiosClient from '../api/axiosClient';
 
 export default function VehicleDetails() {

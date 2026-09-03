@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp } from '../context/appContext';
+import { useApp } from '../context/AppContext';
 import axiosClient from '../api/axiosClient';
 
 const TRANSITION_CONFIG = {

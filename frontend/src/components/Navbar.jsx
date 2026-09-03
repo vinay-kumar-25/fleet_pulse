@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useApp } from '../context/appContext';
+import { useApp } from '../context/AppContext';
 import { themes } from '../theme/themes';
 import { Shield, Truck, ClipboardList, AlertTriangle, LogOut, Menu, X, Palette } from 'lucide-react';
 

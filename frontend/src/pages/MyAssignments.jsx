@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useApp } from '../context/appContext';
+import { useApp } from '../context/AppContext';
 import axiosClient from '../api/axiosClient';
 import TechnicianStatusControl from '../components/TechnicianStatusControl';
 
