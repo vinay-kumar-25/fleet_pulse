@@ -6,9 +6,21 @@ const fs = require('fs');
 const { Vehicle, ServiceRecord } = require('../models');
 const { verifyToken, requireRole } = require('../middleware/auth');
 const upload = multer({ dest: 'uploads/' });
+const { isAssignedTechnician } = require('../services/scheduling');
+
+const normalizeVehiclePayload = (body) => {
+  const payload = { ...body };
+  if ((!payload.make || !payload.model) && typeof payload.make_model === 'string') {
+    const parts = payload.make_model.trim().split(/\s+/);
+    payload.make = parts.shift();
+    payload.model = parts.join(' ');
+  }
+  delete payload.make_model;
+  return payload;
+};
 
 // GET /api/vehicles
-router.get('/', verifyToken, async (req, res) => {
+router.get('/', verifyToken, requireRole('fleet_manager'), async (req, res) => {
   try {
     const filter = req.query.include_archived === 'true' ? {} : { is_archived: false };
     const vehicles = await Vehicle.find(filter).sort({ registration_number: 1 });
@@ -21,11 +33,44 @@ router.get('/', verifyToken, async (req, res) => {
 // POST /api/vehicles (Fleet Manager)
 router.post('/', verifyToken, requireRole('fleet_manager'), async (req, res) => {
   try {
-    const vehicle = new Vehicle(req.body);
+    const vehicle = new Vehicle(normalizeVehiclePayload(req.body));
     await vehicle.save();
     res.status(201).json(vehicle);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/vehicles/:id/export-csv
+router.get('/:id/export-csv', verifyToken, async (req, res) => {
+  try {
+    const vehicle = await Vehicle.findById(req.params.id);
+    if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
+
+    const history = await ServiceRecord.find({ vehicle_id: vehicle._id })
+      .populate('assigned_technicians', 'email')
+      .sort({ scheduled_date: -1 });
+
+    const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const headers = ['Record ID', 'Registration Number', 'Make', 'Model', 'Status', 'Scheduled Date', 'Completed At', 'Odometer Reading', 'Description', 'Assigned Technicians'];
+    const rows = history.map((record) => [
+      record._id,
+      vehicle.registration_number,
+      vehicle.make,
+      vehicle.model,
+      record.status,
+      record.scheduled_date ? new Date(record.scheduled_date).toISOString().split('T')[0] : '',
+      record.completed_at ? new Date(record.completed_at).toISOString().split('T')[0] : '',
+      record.completed_odometer ?? '',
+      record.description || '',
+      record.assigned_technicians.map((technician) => technician.email).join(', ')
+    ].map(escapeCsv).join(','));
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=service_history_${vehicle.registration_number}.csv`);
+    return res.status(200).send([headers.map(escapeCsv).join(','), ...rows].join('\n'));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -36,6 +81,9 @@ router.get('/:id', verifyToken, async (req, res) => {
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
 
     const history = await ServiceRecord.find({ vehicle_id: vehicle._id }).sort({ created_at: -1 });
+    if (req.user.role === 'technician' && !history.some((record) => isAssignedTechnician(record, req.user.id))) {
+      return res.status(403).json({ error: 'You can only view vehicles with records assigned to you.' });
+    }
     res.json({ vehicle, history });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -45,7 +93,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 // PUT /api/vehicles/:id (Fleet Manager)
 router.put('/:id', verifyToken, requireRole('fleet_manager'), async (req, res) => {
   try {
-    const vehicle = await Vehicle.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
+    const vehicle = await Vehicle.findByIdAndUpdate(req.params.id, normalizeVehiclePayload(req.body), { returnDocument: 'after', runValidators: true });
     if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
     res.json(vehicle);
   } catch (err) {
@@ -149,92 +197,4 @@ router.post('/bulk-odometer', verifyToken, requireRole('fleet_manager'), upload.
   }
 });
 
-// ==========================================
-// VEHICLE ROUTES (routes/vehicles.js)
-// ==========================================
-
-// 2. Create new vehicle (Fleet Manager)
-router.post('/', verifyToken, requireRole('fleet_manager'), async (req, res) => {
-  try {
-    const { registration_number, make_model, current_odometer, mileage_interval, date_interval_days } = req.body;
-    const vehicle = new Vehicle({
-      registration_number: registration_number.trim().toUpperCase(),
-      make_model,
-      current_odometer,
-      mileage_interval,
-      date_interval_days
-    });
-    await vehicle.save();
-    res.status(201).json(vehicle);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// 3. Edit existing vehicle (Fleet Manager)
-router.put('/:id', verifyToken, requireRole('fleet_manager'), async (req, res) => {
-  try {
-    const vehicle = await Vehicle.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
-      { returnDocument: 'after', runValidators: true }
-    );
-    if (!vehicle) return res.status(404).json({ error: 'Vehicle not found' });
-    res.json(vehicle);
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// 4. Archive & Restore vehicles (Fleet Manager)
-router.patch('/:id/archive', verifyToken, requireRole('fleet_manager'), async (req, res) => {
-  try {
-    const vehicle = await Vehicle.findByIdAndUpdate(req.params.id, { is_archived: true }, { returnDocument: 'after' });
-    res.json(vehicle);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.patch('/:id/restore', verifyToken, requireRole('fleet_manager'), async (req, res) => {
-  try {
-    const vehicle = await Vehicle.findByIdAndUpdate(req.params.id, { is_archived: false }, { returnDocument: 'after' });
-    res.json(vehicle);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/vehicles/:id/export-csv (Export vehicle service history to CSV)
-router.get('/:id/export-csv', verifyToken, async (req, res) => {
-  try {
-    const vehicle = await Vehicle.findById(req.params.id);
-    if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
-
-    const history = await ServiceRecord.find({ vehicle_id: vehicle._id })
-      .populate('assigned_technicians', 'email')
-      .sort({ scheduled_date: -1 });
-
-    // Generate CSV Headers and Rows
-    const headers = ['Record ID', 'Status', 'Scheduled Date', 'Completed At', 'Odometer Reading', 'Description', 'Assigned Technicians'];
-    
-    const rows = history.map(r => [
-      r._id,
-      r.status,
-      r.scheduled_date ? new Date(r.scheduled_date).toISOString().split('T')[0] : '',
-      r.completed_at ? new Date(r.completed_at).toISOString().split('T')[0] : '',
-      r.odometer_at_service || '',
-      `"${(r.description || '').replace(/"/g, '""')}"`,
-      `"${r.assigned_technicians.map(t => t.email).join(', ')}"`
-    ]);
-
-    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=service_history_${vehicle.registration_number}.csv`);
-    return res.status(200).send(csvContent);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 module.exports = router;

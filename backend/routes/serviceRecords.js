@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { ServiceRecord, TimelineEvent, Vehicle, User } = require('../models');
 const { verifyToken, requireRole } = require('../middleware/auth');
+const { calculateDueAt, isAssignedTechnician, createNextServiceRecord } = require('../services/scheduling');
 
-// Allowed status transitions
+// Allowed status transitions (Goal 4 Lifecycle Rules)
 const VALID_TRANSITIONS = {
   due: ['booked'],
   booked: ['in_service'],
@@ -15,14 +16,14 @@ const VALID_TRANSITIONS = {
 // 1. SPECIFIC STATIC ROUTES (Must come before /:id)
 // ==========================================
 
-// GET /api/service-records (Server-side search, filter, sort, paginate)
+// GET /api/service-records (Server-side search, filter, sort, paginate - Goal 6)
 router.get('/', verifyToken, async (req, res) => {
   try {
     const { search, vehicle_id, status, technician_id, sort_by = 'created_at', order = 'desc', page, limit } = req.query;
 
     let query = {};
 
-    // Role view restriction for technicians
+    // Role view restriction for technicians (Goal 1 & 5)
     if (req.user.role === 'technician') {
       query.assigned_technicians = req.user.id;
     } else if (technician_id) {
@@ -33,17 +34,8 @@ router.get('/', verifyToken, async (req, res) => {
     if (status) query.status = status;
     if (search) query.$text = { $search: search };
 
-    const sortOptions = {};
-    sortOptions[sort_by] = order === 'asc' ? 1 : -1;
-
-    // Optional pagination: If no page/limit provided, return all records for compatibility
-    if (!page && !limit) {
-      const records = await ServiceRecord.find(query)
-        .populate('vehicle_id', 'registration_number make_model current_odometer')
-        .populate('assigned_technicians', 'email role')
-        .sort(sortOptions);
-      return res.json(records);
-    }
+    const allowedSorts = ['scheduled_date', 'status', 'updated_at', 'created_at'];
+    const sortOptions = { [allowedSorts.includes(sort_by) ? sort_by : 'updated_at']: order === 'asc' ? 1 : -1 };
 
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 10;
@@ -51,7 +43,7 @@ router.get('/', verifyToken, async (req, res) => {
 
     const totalMatches = await ServiceRecord.countDocuments(query);
     const records = await ServiceRecord.find(query)
-      .populate('vehicle_id', 'registration_number make_model current_odometer')
+      .populate('vehicle_id', 'registration_number make model current_odometer')
       .populate('assigned_technicians', 'email role')
       .sort(sortOptions)
       .skip(skip)
@@ -71,7 +63,7 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// GET /api/service-records/my-assigned
+// GET /api/service-records/my-assigned (Goal 5)
 router.get('/my-assigned', verifyToken, requireRole('technician'), async (req, res) => {
   try {
     const records = await ServiceRecord.find({ assigned_technicians: req.user.id })
@@ -93,30 +85,41 @@ router.get('/technicians', verifyToken, requireRole('fleet_manager'), async (req
   }
 });
 
-// POST /api/service-records (Create record with Timeline Audit Log)
+// POST /api/service-records (Create record with Timeline Audit Log - Goal 3 & 9)
 router.post('/', verifyToken, requireRole('fleet_manager'), async (req, res) => {
   try {
     const { vehicle_id, description, scheduled_date, assigned_technicians } = req.body;
-    
+    const vehicle = await Vehicle.findById(vehicle_id);
+    if (!vehicle) return res.status(404).json({ error: 'Vehicle not found.' });
+
     const record = new ServiceRecord({
       vehicle_id,
       description,
       scheduled_date,
       assigned_technicians: assigned_technicians || [],
-      status: 'due'
+      status: 'due',
+      due_at: calculateDueAt(vehicle),
     });
 
     await record.save();
 
-    // Create audit event
     await TimelineEvent.create({
       service_record_id: record._id,
       user_id: req.user.id,
       event_type: 'created'
     });
 
+    for (const technicianId of assigned_technicians || []) {
+      await TimelineEvent.create({
+        service_record_id: record._id,
+        user_id: req.user.id,
+        event_type: 'assignment_add',
+        new_value: technicianId.toString()
+      });
+    }
+
     const populated = await record.populate([
-      { path: 'vehicle_id', select: 'registration_number make_model current_odometer' },
+      { path: 'vehicle_id', select: 'registration_number make model current_odometer' },
       { path: 'assigned_technicians', select: 'email role' }
     ]);
 
@@ -130,13 +133,16 @@ router.post('/', verifyToken, requireRole('fleet_manager'), async (req, res) => 
 // 2. DYNAMIC PARAMETER ROUTES (/:id)
 // ==========================================
 
-// GET /api/service-records/:id
+// GET /api/service-records/:id (Goal 9 Audit History View)
 router.get('/:id', verifyToken, async (req, res) => {
   try {
     const record = await ServiceRecord.findById(req.params.id)
       .populate('vehicle_id')
       .populate('assigned_technicians', 'email role');
     if (!record) return res.status(404).json({ error: 'Service record not found.' });
+    if (req.user.role === 'technician' && !isAssignedTechnician(record, req.user.id)) {
+      return res.status(403).json({ error: 'You can only view records assigned to you.' });
+    }
 
     const timeline = await TimelineEvent.find({ service_record_id: record._id })
       .populate('user_id', 'email')
@@ -148,17 +154,27 @@ router.get('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// PATCH /api/service-records/:id/status
+// PATCH /api/service-records/:id/status (Goal 4 Lifecycle & Goal 1 Assignment Check)
 router.patch('/:id/status', verifyToken, async (req, res) => {
   try {
     const { next_status, scheduled_date } = req.body;
     const record = await ServiceRecord.findById(req.params.id);
     if (!record) return res.status(404).json({ error: 'Record not found.' });
 
-    if (!VALID_TRANSITIONS[record.status]?.includes(next_status)) {
+    // Server-side Technician Assignment Check
+    if (req.user.role === 'technician' && !isAssignedTechnician(record, req.user.id)) {
+      return res.status(403).json({ error: 'You can only update records assigned to you.' });
+    }
+
+    const allowedTransitions = VALID_TRANSITIONS[record.status] || [];
+    if (!allowedTransitions.includes(next_status)) {
       return res.status(400).json({
-        error: `Illegal state transition from '${record.status}' to '${next_status}'.`
+        error: `Illegal state transition from '${record.status}' to '${next_status}'. Allowed: ${allowedTransitions.join(', ') || 'None'}.`
       });
+    }
+
+    if (next_status === 'booked' && (!record.assigned_technicians || record.assigned_technicians.length === 0)) {
+      return res.status(400).json({ error: 'At least one technician must be assigned before booking.' });
     }
 
     const oldStatus = record.status;
@@ -172,12 +188,16 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
       const vehicle = await Vehicle.findById(record.vehicle_id);
       if (vehicle) {
         record.completed_odometer = vehicle.current_odometer;
+        vehicle.last_service_at = record.completed_at;
+        vehicle.last_service_odometer = vehicle.current_odometer;
+        await vehicle.save();
       }
       record.alert_dismissed_at = null;
     }
 
     await record.save();
 
+    // Audit Logging
     await TimelineEvent.create({
       service_record_id: record._id,
       user_id: req.user.id,
@@ -186,19 +206,33 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
       new_value: next_status
     });
 
+    // Auto-spawn Next Service Cycle
+    if (next_status === 'completed') {
+      const vehicle = await Vehicle.findById(record.vehicle_id);
+      if (vehicle) {
+        const nextRecord = await createNextServiceRecord(vehicle, req.user.id);
+        await TimelineEvent.create({
+          service_record_id: nextRecord._id,
+          user_id: req.user.id,
+          event_type: 'created',
+          new_value: 'Next service cycle'
+        });
+      }
+    }
+
     res.json(record);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// PATCH /api/service-records/:id/description
+// PATCH /api/service-records/:id/description (Goal 3)
 router.patch('/:id/description', verifyToken, async (req, res) => {
   try {
     const record = await ServiceRecord.findById(req.params.id);
     if (!record) return res.status(404).json({ error: 'Record not found.' });
 
-    if (req.user.role === 'technician' && !record.assigned_technicians.includes(req.user.id)) {
+    if (req.user.role === 'technician' && !isAssignedTechnician(record, req.user.id)) {
       return res.status(403).json({ error: 'You are not assigned to update this record.' });
     }
 
@@ -218,42 +252,45 @@ router.patch('/:id/description', verifyToken, async (req, res) => {
   }
 });
 
-// PATCH /api/service-records/:id/technicians (Assign/Remove multiple technicians array)
+// PATCH /api/service-records/:id/technicians (Bulk technician update - Fleet Manager only)
 router.patch('/:id/technicians', verifyToken, requireRole('fleet_manager'), async (req, res) => {
   try {
     const { assigned_technicians } = req.body;
-    const record = await ServiceRecord.findByIdAndUpdate(
-      req.params.id,
-      { assigned_technicians },
-      { returnDocument: 'after' }
-    ).populate([
-      { path: 'vehicle_id', select: 'registration_number make_model current_odometer' },
+    const record = await ServiceRecord.findById(req.params.id);
+    if (!record) return res.status(404).json({ error: 'Service record not found' });
+
+    const previousTechnicians = record.assigned_technicians.map((id) => id.toString());
+    const nextTechnicians = (assigned_technicians || []).map((id) => id.toString());
+
+    record.assigned_technicians = assigned_technicians || [];
+    await record.save();
+
+    const populated = await record.populate([
+      { path: 'vehicle_id', select: 'registration_number make model current_odometer' },
       { path: 'assigned_technicians', select: 'email role' }
     ]);
 
-    if (!record) return res.status(404).json({ error: 'Service record not found' });
+    for (const technicianId of nextTechnicians.filter((id) => !previousTechnicians.includes(id))) {
+      await TimelineEvent.create({ service_record_id: record._id, user_id: req.user.id, event_type: 'assignment_add', new_value: technicianId });
+    }
+    for (const technicianId of previousTechnicians.filter((id) => !nextTechnicians.includes(id))) {
+      await TimelineEvent.create({ service_record_id: record._id, user_id: req.user.id, event_type: 'assignment_remove', old_value: technicianId });
+    }
 
-    await TimelineEvent.create({
-      service_record_id: record._id,
-      user_id: req.user.id,
-      event_type: 'assignment_update',
-      new_value: JSON.stringify(assigned_technicians)
-    });
-
-    res.json(record);
+    res.json(populated);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
 
-// POST /api/service-records/:id/assignments (Single technician push)
+// POST /api/service-records/:id/assignments (Single technician add)
 router.post('/:id/assignments', verifyToken, requireRole('fleet_manager'), async (req, res) => {
   try {
     const { technician_id } = req.body;
     const record = await ServiceRecord.findById(req.params.id);
     if (!record) return res.status(404).json({ error: 'Record not found' });
 
-    if (!record.assigned_technicians.includes(technician_id)) {
+    if (!record.assigned_technicians.some((id) => id.toString() === technician_id)) {
       record.assigned_technicians.push(technician_id);
       await record.save();
 
