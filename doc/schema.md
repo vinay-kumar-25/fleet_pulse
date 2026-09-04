@@ -1,88 +1,93 @@
 ### Database Schema
 
-```sql
--- Users table: Stores account details and role-based permissions
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL CHECK (role IN ('fleet_manager', 'technician')), -- Server-enforced RBAC
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+The backend uses MongoDB with Mongoose. The schemas below describe the application
+models; identifiers are MongoDB `ObjectId` values, not UUIDs. Mongoose creates the
+collections from the model names: `users`, `vehicles`, `servicerecords`, and
+`timelineevents`.
 
--- Vehicles table: Tracks individual vehicle metadata, interval thresholds, and grace periods
-CREATE TABLE vehicles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    registration_number VARCHAR(50) UNIQUE NOT NULL,
-    make VARCHAR(255) NOT NULL,
-    model VARCHAR(255) NOT NULL,
-    current_odometer INT NOT NULL CHECK (current_odometer >= 0),
-    date_interval_days INT NOT NULL CHECK (date_interval_days > 0), -- Service due interval in days
-    mileage_interval INT NOT NULL CHECK (mileage_interval > 0),    -- Service due interval in miles/km
-    grace_period_days INT NOT NULL DEFAULT 7,                       -- Days past 'due' before becoming overdue
-    is_archived BOOLEAN NOT NULL DEFAULT FALSE,                    -- True hides from default fleet view without deleting history
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+#### Users (`users`)
 
--- Service Records table: Manages lifecycle states and historical completion baselines
-CREATE TABLE service_records (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    vehicle_id UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
-    description TEXT NOT NULL DEFAULT '',                           -- Work description editable by assigned technicians
-    status VARCHAR(20) NOT NULL DEFAULT 'due' 
-        CHECK (status IN ('due', 'booked', 'in_service', 'completed')), -- Strict lifecycle state machine
-    scheduled_date TIMESTAMP WITH TIME ZONE,                        -- Assigned when status moves to 'booked'
-    completed_at TIMESTAMP WITH TIME ZONE,                         -- Resets date counter for next service cycle
-    completed_odometer INT CHECK (completed_odometer >= 0),         -- Resets mileage counter for next service cycle
-    alert_dismissed_at TIMESTAMP WITH TIME ZONE,                   -- Tracks dismissal timestamp; resets when next due cycle triggers
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+| Field | Type | Required / default | Constraints |
+| --- | --- | --- | --- |
+| `_id` | ObjectId | Generated | Primary identifier |
+| `email` | String | Required | Unique, lowercase, trimmed, valid email format |
+| `password_hash` | String | Required | Stored password hash |
+| `role` | String | Required | `fleet_manager` or `technician` |
+| `created_at` | Date | Generated | Mongoose `createdAt` timestamp |
 
--- Service Assignments table: Many-to-Many junction table between technicians and service records
-CREATE TABLE service_assignments (
-    service_record_id UUID NOT NULL REFERENCES service_records(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    PRIMARY KEY (service_record_id, user_id)
-);
+`updated_at` is not created for users.
 
--- Timeline Events table: Immutable, append-only audit log for full service record history
-CREATE TABLE timeline_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_record_id UUID NOT NULL REFERENCES service_records(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,           -- Actor who triggered the event
-    event_type VARCHAR(50) NOT NULL,                                -- 'created', 'status_change', 'assignment_add', 'assignment_remove', 'note'
-    old_value TEXT,                                                 -- Previous value (for status or assignment changes)
-    new_value TEXT,                                                 -- New value (for status or assignment changes)
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()              -- Immutable timestamp (no UPDATE or DELETE routes exposed)
-);
+#### Vehicles (`vehicles`)
 
-CSV File Schema
+| Field | Type | Required / default | Constraints |
+| --- | --- | --- | --- |
+| `_id` | ObjectId | Generated | Primary identifier |
+| `registration_number` | String | Required | Unique, uppercase, trimmed, Indian registration format |
+| `make` | String | Required | Trimmed |
+| `model` | String | Required | Trimmed |
+| `current_odometer` | Number | Required | Minimum `0` |
+| `date_interval_days` | Number | Required | Minimum `1` |
+| `mileage_interval` | Number | Required | Minimum `1` |
+| `grace_period_days` | Number | `7` | Minimum `0` |
+| `last_service_at` | Date or null | `null` | Previous service completion date |
+| `last_service_odometer` | Number or null | `null` | Minimum `0` |
+| `is_archived` | Boolean | `false` | Indexed; archived vehicles are hidden by default |
+| `created_at` | Date | Generated | Mongoose `createdAt` timestamp |
+| `updated_at` | Date | Generated | Mongoose `updatedAt` timestamp |
 
-Based on the bulk odometer update handler in Vehicles.jsx, the backend expects a standard CSV format with two headers:
+Indexes: `{ is_archived: 1, registration_number: 1 }`; `is_archived` is also
+indexed by the field definition. Unique registration numbers are enforced by a
+unique index.
 
-registration_number: String (Unique vehicle registration identifier, e.g., REG-1001).
+#### Service Records (`servicerecords`)
 
-new_odometer: Integer (New updated odometer mileage reading).
+| Field | Type | Required / default | Constraints |
+| --- | --- | --- | --- |
+| `_id` | ObjectId | Generated | Primary identifier |
+| `created_by` | ObjectId or null | `null` | References `User` |
+| `vehicle_id` | ObjectId | Required | References `Vehicle`; indexed |
+| `description` | String | `''` | Trimmed |
+| `status` | String | `due` | `due`, `booked`, `in_service`, or `completed`; required and indexed |
+| `assigned_technicians` | ObjectId[] | `[]` | References `User`; each value is indexed |
+| `scheduled_date` | Date or null | `null` | Set when a record is booked |
+| `completed_at` | Date or null | `null` | Completion timestamp |
+| `completed_odometer` | Number or null | `null` | Minimum `0` |
+| `alert_dismissed_at` | Date or null | `null` | Alert dismissal timestamp |
+| `due_at` | Date | `Date.now` | Indexed; calculated service due date |
+| `created_at` | Date | Generated | Mongoose `createdAt` timestamp |
+| `updated_at` | Date | Generated | Mongoose `updatedAt` timestamp |
 
+Indexes: text index on `description`; compound index
+`{ vehicle_id: 1, status: 1, scheduled_date: 1 }`; `vehicle_id`, `status`,
+`assigned_technicians`, and `due_at` are also indexed by field definitions.
 
+#### Timeline Events (`timelineevents`)
 
+| Field | Type | Required / default | Constraints |
+| --- | --- | --- | --- |
+| `_id` | ObjectId | Generated | Primary identifier |
+| `service_record_id` | ObjectId | Required | References `ServiceRecord`; indexed |
+| `user_id` | ObjectId or null | `null` | References `User` |
+| `event_type` | String | Required | `created`, `status_change`, `assignment_add`, `assignment_remove`, or `description_update` |
+| `old_value` | String or null | `null` | Previous status or assignment value |
+| `new_value` | String or null | `null` | New status, assignment, or description value |
+| `created_at` | Date | Generated | Mongoose `createdAt` timestamp |
 
+Timeline events are append-only. Mongoose blocks update and delete operations
+for this model, and no API routes expose mutation of existing events.
 
+There is no separate assignments collection: technician assignments are stored
+as the `assigned_technicians` ObjectId array on each service record.
 
-Demo Login Credentials for Testing
+### CSV File Schema
 
+The bulk odometer endpoint (`POST /api/vehicles/bulk-odometer`) expects a CSV
+with these headers:
 
+| Header | Type | Description |
+| --- | --- | --- |
+| `registration_number` | String | Vehicle registration identifier; matched case-insensitively after trimming and uppercasing |
+| `odometer` or `new_odometer` | Integer | New odometer reading; values lower than the current reading are rejected |
 
-Fleet Manager:
-
-Email: manager@fleet.com
-
-Password: password123
-
-Technician:
-
-Email: tech@fleet.com
-
-Password: password123
+Each row produces a success or rejection result. Temporary uploaded files are
+removed after processing.

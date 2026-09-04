@@ -39,6 +39,3 @@
 31. Block editing or deletion of timeline entries by any user
 
 ---
-
-**Suggested Next Step**
-Would you like to outline the database schema or plan the API routes next?
