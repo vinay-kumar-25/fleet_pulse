@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import axiosClient from '../api/axiosClient';
+import { Loader2 } from 'lucide-react';
 
 const TRANSITION_CONFIG = {
-  due: null, // Booking must be performed by Fleet Managers during scheduling
-  booked: { label: 'Start Service', next: 'in_service', color: 'bg-amber-600 hover:bg-amber-500' },
-  in_service: { label: 'Mark as Completed', next: 'completed', color: 'bg-emerald-600 hover:bg-emerald-500' },
+  due: null,
+  booked: { label: 'Start Service', next: 'in_service' },
+  in_service: { label: 'Mark as Completed', next: 'completed' },
   completed: null
 };
 
@@ -21,7 +22,7 @@ export default function TechnicianStatusControl({ record, onUpdate }) {
   }
 
   if (!config) {
-    return <span className={`text-xs font-semibold ${activeTheme.success}`}>Completed</span>;
+    return <span className={`text-xs font-semibold ${activeTheme.success} px-2 py-0.5 rounded-full`}>Completed</span>;
   }
 
   const handleStatusUpdate = async () => {
@@ -41,13 +42,14 @@ export default function TechnicianStatusControl({ record, onUpdate }) {
 
   return (
     <div className="flex flex-col gap-1 items-end">
-      {error && <span className={`text-[10px] ${activeTheme.danger}`}>{error}</span>}
+      {error && <span className={`text-[10px] ${activeTheme.danger} px-2 py-0.5 rounded-full`}>{error}</span>}
       <button
         onClick={handleStatusUpdate}
         disabled={loading}
-        className={`mac-button px-3 py-1.5 text-xs font-medium ${activeTheme.button}`}
+        className={`mac-button flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium ${activeTheme.button}`}
       >
-        {loading ? 'Updating...' : config.label}
+        {loading && <Loader2 className="w-3 h-3 animate-spin" />}
+        {loading ? 'Updating…' : config.label}
       </button>
     </div>
   );

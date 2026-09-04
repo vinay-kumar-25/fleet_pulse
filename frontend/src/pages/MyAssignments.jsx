@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import axiosClient from '../api/axiosClient';
 import TechnicianStatusControl from '../components/TechnicianStatusControl';
+import { Loader2, ClipboardList } from 'lucide-react';
 
 const STATUS_THEMES = {
   due: 'bg-red-500/10 text-red-400 border-red-500/20',
@@ -77,56 +78,70 @@ export default function MyAssignments() {
     }
   };
 
-  if (loading) return <div className={`p-8 text-center text-sm ${activeTheme.textSecondary}`}>Loading assigned maintenance queue...</div>;
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 min-h-[50vh]">
+        <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+        <p className={`text-sm ${activeTheme.textSecondary}`}>Loading assigned maintenance queue…</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 animate-[fadeIn_0.4s_ease]">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">My Assigned Work Orders</h1>
         <p className={`text-sm ${activeTheme.textSecondary}`}>Assigned maintenance tasks requiring update</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {assignedRecords.map((item) => (
-          <div key={item._id} className={`mac-card space-y-4 p-5 ${activeTheme.card}`}>
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-bold">{item.vehicle_id?.registration_number}</h3>
-                <p className={`text-xs ${activeTheme.textSecondary}`}>
-                  {item.vehicle_id?.make} {item.vehicle_id?.model}
-                </p>
+      {assignedRecords.length === 0 ? (
+        <div className={`mac-card flex flex-col items-center gap-2 py-16 ${activeTheme.card}`}>
+          <ClipboardList className={`w-8 h-8 ${activeTheme.textMuted}`} />
+          <p className={`text-sm ${activeTheme.textSecondary}`}>No work orders assigned to you right now.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {assignedRecords.map((item) => (
+            <div key={item._id} className={`mac-card space-y-4 p-5 transition-all duration-300 ${activeTheme.card} ${activeTheme.cardHover}`}>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-bold">{item.vehicle_id?.registration_number}</h3>
+                  <p className={`text-xs ${activeTheme.textSecondary}`}>
+                    {item.vehicle_id?.make} {item.vehicle_id?.model}
+                  </p>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border ${STATUS_THEMES[item.status] || STATUS_THEMES.due}`}>
+                  {item.status?.replace('_', ' ')}
+                </span>
               </div>
-              <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider border ${STATUS_THEMES[item.status] || STATUS_THEMES.due}`}>
-                {item.status?.replace('_', ' ')}
-              </span>
-            </div>
 
-            <div className="space-y-1">
-              <label className={`text-xs font-semibold ${activeTheme.textSecondary}`}>Work Log & Notes</label>
-              <textarea
-                value={item.description || ''}
-                onChange={(e) => handleDescriptionChange(item._id, e.target.value)}
-                onBlur={(e) => handleDescriptionSave(item._id, e.target.value)}
-                rows={3}
-                className={`mac-input w-full p-3 text-xs ${activeTheme.input}`}
-              />
-            </div>
+              <div className="space-y-1">
+                <label className={`text-xs font-semibold ${activeTheme.textSecondary}`}>Work Log & Notes</label>
+                <textarea
+                  value={item.description || ''}
+                  onChange={(e) => handleDescriptionChange(item._id, e.target.value)}
+                  onBlur={(e) => handleDescriptionSave(item._id, e.target.value)}
+                  rows={3}
+                  className={`mac-input w-full p-3 text-xs resize-none ${activeTheme.input}`}
+                />
+              </div>
 
-            <div className={`flex justify-between items-center pt-2 border-t ${activeTheme.border}`}>
-              <button
-                onClick={() => viewTimeline(item._id)}
-                className="text-xs text-blue-400 hover:underline font-medium"
-              >
-                View Audit Timeline
-              </button>
-              <TechnicianStatusControl record={item} onUpdate={handleStatusUpdate} />
+              <div className={`flex justify-between items-center pt-2 border-t ${activeTheme.border}`}>
+                <button
+                  onClick={() => viewTimeline(item._id)}
+                  className="text-xs text-blue-400 hover:underline font-medium"
+                >
+                  View Audit Timeline
+                </button>
+                <TechnicianStatusControl record={item} onUpdate={handleStatusUpdate} />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {selectedTimeline && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl animate-[fadeIn_0.2s_ease]">
           <div className={`mac-card w-full max-w-lg space-y-4 p-6 ${activeTheme.card}`}>
             <h3 className="text-lg font-bold">Immutable Timeline History</h3>
             <div className="space-y-2 max-h-60 overflow-y-auto text-xs">

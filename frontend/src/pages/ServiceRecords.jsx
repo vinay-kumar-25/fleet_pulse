@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import axiosClient from '../api/axiosClient';
-import { Plus, UserPlus, Download, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Plus, UserPlus, Download, ChevronLeft, ChevronRight, X, FileText } from 'lucide-react';
 
 export default function ServiceRecords() {
   const { activeTheme, user } = useApp();
   const [records, setRecords] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [technicians, setTechnicians] = useState([]);
-  
+
   const [filters, setFilters] = useState({ search: '', vehicle_id: '', status: '', technician_id: '', sort_by: 'updated_at', order: 'desc' });
   const [pagination, setPagination] = useState({ page: 1, limit: 8, totalPages: 1, totalMatches: 0 });
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -96,7 +96,6 @@ export default function ServiceRecords() {
     };
   }, [search, vehicle_id, status, technician_id, sort_by, order, pagination.page, pagination.limit, user?.role]);
 
-  // Handle CSV Download per vehicle
   const handleExportCSV = async (vehicleId, regNum) => {
     try {
       const response = await axiosClient.get(`/vehicles/${vehicleId}/export-csv`, {
@@ -115,7 +114,6 @@ export default function ServiceRecords() {
     }
   };
 
-  // Create Service Record Handler
   const handleCreateRecord = async (e) => {
     e.preventDefault();
     try {
@@ -128,14 +126,12 @@ export default function ServiceRecords() {
     }
   };
 
-  // Open Assignment Modal
   const openAssignModal = (record) => {
     setSelectedRecord(record);
     setSelectedTechs(record.assigned_technicians.map(t => t._id));
     setShowAssignModal(true);
   };
 
-  // Assign/Remove Technicians Handler
   const handleSaveTechnicians = async () => {
     try {
       await axiosClient.patch(`/service-records/${selectedRecord._id}/technicians`, {
@@ -149,9 +145,16 @@ export default function ServiceRecords() {
     }
   };
 
+  const STATUS_BADGE = {
+    completed: 'bg-emerald-500/10 text-emerald-400',
+    in_service: 'bg-blue-500/10 text-blue-400',
+    booked: 'bg-amber-500/10 text-amber-400',
+    due: 'bg-red-500/10 text-red-400'
+  };
+
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 animate-[fadeIn_0.4s_ease]">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h1 className="text-2xl font-bold">Service Records & Maintenance</h1>
           <p className={`text-sm ${activeTheme.textSecondary}`}>Manage maintenance schedules and technician tasks</p>
@@ -159,7 +162,7 @@ export default function ServiceRecords() {
         {user?.role === 'fleet_manager' && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className={`flex items-center gap-2 px-4 py-2 rounded font-bold text-sm ${activeTheme.accent}`}
+            className={`mac-button flex items-center gap-2 px-4 py-2.5 text-sm font-semibold ${activeTheme.button}`}
           >
             <Plus className="w-4 h-4" /> Create Service Record
           </button>
@@ -188,13 +191,23 @@ export default function ServiceRecords() {
             </tr>
           </thead>
           <tbody className={`divide-y ${activeTheme.border}`}>
+            {records.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-10 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <FileText className={`w-6 h-6 ${activeTheme.textMuted}`} />
+                    <span className={`text-sm ${activeTheme.textSecondary}`}>No service records match these filters.</span>
+                  </div>
+                </td>
+              </tr>
+            )}
             {records.map((r) => (
-              <tr key={r._id}>
+              <tr key={r._id} className={`transition-colors duration-200 ${activeTheme.cardHover}`}>
                 <td className="p-4 font-bold">{r.vehicle_id?.registration_number || 'N/A'}<div className={`text-xs font-normal ${activeTheme.textSecondary}`}>{r.vehicle_id?.make} {r.vehicle_id?.model}</div></td>
-                <td className="p-4">{r.description}</td>
+                <td className="p-4 max-w-xs truncate">{r.description}</td>
                 <td className="p-4">{r.scheduled_date ? new Date(r.scheduled_date).toLocaleDateString() : 'Not scheduled'}</td>
                 <td className="p-4">
-                  <span className={`px-2 py-0.5 rounded text-xs font-semibold ${r.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_BADGE[r.status] || STATUS_BADGE.due}`}>
                     {r.status}
                   </span>
                 </td>
@@ -202,53 +215,78 @@ export default function ServiceRecords() {
                   {r.assigned_technicians?.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {r.assigned_technicians.map((t) => (
-                        <span key={t._id} className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-300">
+                        <span key={t._id} className={`text-xs px-2 py-0.5 rounded-full ${activeTheme.badge}`}>
                           {t.email}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-xs text-zinc-500 italic">Unassigned</span>
+                    <span className={`text-xs italic ${activeTheme.textMuted}`}>Unassigned</span>
                   )}
                 </td>
-                <td className="p-4 text-right flex justify-end gap-2">
-                  {/* Export CSV Button per Vehicle */}
-                  {r.vehicle_id && (
-                    <>
-                      <button onClick={() => openDetails(r._id)} className="p-1 hover:text-cyan-400" title="View timeline">Details</button>
-                      <button onClick={() => handleExportCSV(r.vehicle_id._id, r.vehicle_id.registration_number)} title="Export Vehicle History CSV" className="p-1 hover:text-emerald-400"><Download className="w-4 h-4" /></button>
-                    </>
-                  )}
-                  {user?.role === 'fleet_manager' && (
-                    <button
-                      onClick={() => openAssignModal(r)}
-                      title="Assign/Remove Technicians"
-                      className="p-1 hover:text-blue-400"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                    </button>
-                  )}
-                  {user?.role === 'fleet_manager' && r.status === 'due' && (
-                    <button
-                      onClick={() => bookRecord(r)}
-                      className={`px-2 py-1 rounded ${activeTheme.accent}`}
-                    >
-                      Book
-                    </button>
-                  )}
+                <td className="p-4 text-right">
+                  <div className="flex justify-end items-center gap-1">
+                    {r.vehicle_id && (
+                      <>
+                        <button onClick={() => openDetails(r._id)} className={`px-2 py-1 text-xs font-medium rounded-lg hover:opacity-70 transition-opacity ${activeTheme.textSecondary}`} title="View timeline">Details</button>
+                        <button onClick={() => handleExportCSV(r.vehicle_id._id, r.vehicle_id.registration_number)} title="Export Vehicle History CSV" className="mac-icon-button hover:text-emerald-400"><Download className="w-4 h-4" /></button>
+                      </>
+                    )}
+                    {user?.role === 'fleet_manager' && (
+                      <button
+                        onClick={() => openAssignModal(r)}
+                        title="Assign/Remove Technicians"
+                        className="mac-icon-button hover:text-blue-400"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                      </button>
+                    )}
+                    {user?.role === 'fleet_manager' && r.status === 'due' && (
+                      <button
+                        onClick={() => bookRecord(r)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 active:scale-95 ${activeTheme.accent}`}
+                      >
+                        Book
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className={`p-4 border-t ${activeTheme.border} flex justify-between text-xs`}><span>{pagination.totalMatches} matches, page {pagination.page} of {pagination.totalPages || 1}</span><div className="flex gap-2"><button disabled={pagination.page <= 1} onClick={() => setPagination((current) => ({ ...current, page: current.page - 1 }))} className="p-1 border rounded disabled:opacity-40"><ChevronLeft className="w-4 h-4" /></button><button disabled={pagination.page >= pagination.totalPages} onClick={() => setPagination((current) => ({ ...current, page: current.page + 1 }))} className="p-1 border rounded disabled:opacity-40"><ChevronRight className="w-4 h-4" /></button></div></div>
+        <div className={`p-4 border-t ${activeTheme.border} flex justify-between items-center text-xs`}>
+          <span className={activeTheme.textSecondary}>{pagination.totalMatches} matches, page {pagination.page} of {pagination.totalPages || 1}</span>
+          <div className="flex gap-2">
+            <button disabled={pagination.page <= 1} onClick={() => setPagination((current) => ({ ...current, page: current.page - 1 }))} className="mac-icon-button disabled:opacity-40"><ChevronLeft className="w-4 h-4" /></button>
+            <button disabled={pagination.page >= pagination.totalPages} onClick={() => setPagination((current) => ({ ...current, page: current.page + 1 }))} className="mac-icon-button disabled:opacity-40"><ChevronRight className="w-4 h-4" /></button>
+          </div>
+        </div>
       </div>
 
-      {selectedRecord && <div className="fixed inset-0 z-50 flex justify-end bg-black/45 backdrop-blur-xl"><aside className={`mac-card h-full w-full max-w-lg overflow-y-auto p-6 ${activeTheme.card}`}><button onClick={() => setSelectedRecord(null)} className="mac-icon-button float-right"><X /></button><h2 className="mb-4 text-xl font-bold">Record timeline</h2><p>{selectedRecord.vehicle_id?.registration_number} - {selectedRecord.description}</p><div className="mt-6 space-y-3">{timeline.map((event) => <div key={event._id} className={`rounded-xl border p-3 ${activeTheme.border}`}><div className="font-semibold">{event.event_type.replace('_', ' ')}</div><div className={`text-xs ${activeTheme.textSecondary}`}>{event.user_id?.email || 'System'} | {new Date(event.created_at).toLocaleString()}</div>{event.old_value && <div>From: {event.old_value}</div>}{event.new_value && <div>To: {event.new_value}</div>}</div>)}</div></aside></div>}
+      {selectedRecord && !showAssignModal && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/45 backdrop-blur-xl animate-[fadeIn_0.2s_ease]">
+          <aside className={`mac-card h-full w-full max-w-lg overflow-y-auto p-6 ${activeTheme.card}`}>
+            <button onClick={() => setSelectedRecord(null)} className="mac-icon-button float-right"><X className="w-4 h-4" /></button>
+            <h2 className="mb-4 text-xl font-bold">Record timeline</h2>
+            <p className={activeTheme.textSecondary}>{selectedRecord.vehicle_id?.registration_number} - {selectedRecord.description}</p>
+            <div className="mt-6 space-y-3">
+              {timeline.map((event) => (
+                <div key={event._id} className={`rounded-xl border p-3 ${activeTheme.border} ${activeTheme.input}`}>
+                  <div className="font-semibold">{event.event_type.replace('_', ' ')}</div>
+                  <div className={`text-xs ${activeTheme.textSecondary}`}>{event.user_id?.email || 'System'} | {new Date(event.created_at).toLocaleString()}</div>
+                  {event.old_value && <div className="text-xs mt-1">From: {event.old_value}</div>}
+                  {event.new_value && <div className="text-xs">To: {event.new_value}</div>}
+                </div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      )}
 
       {/* Create Service Record Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl animate-[fadeIn_0.2s_ease]">
           <div className={`mac-card w-full max-w-md space-y-4 p-6 ${activeTheme.card}`}>
             <h3 className="text-lg font-bold">New Service Record</h3>
             <form onSubmit={handleCreateRecord} className="space-y-3">
@@ -269,12 +307,13 @@ export default function ServiceRecords() {
                 placeholder="Description / Maintenance Details"
                 value={createForm.description}
                 onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                className={`mac-input w-full p-3 text-xs ${activeTheme.input}`}
+                className={`mac-input w-full p-3 text-xs resize-none ${activeTheme.input}`}
+                rows={3}
                 required
               />
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setShowCreateModal(false)} className="px-3 py-1.5 text-xs">Cancel</button>
-                <button type="submit" className={`px-4 py-1.5 text-xs font-bold rounded ${activeTheme.accent}`}>Create</button>
+                <button type="button" onClick={() => setShowCreateModal(false)} className={`mac-button px-3.5 py-2 text-xs font-medium ${activeTheme.buttonSecondary}`}>Cancel</button>
+                <button type="submit" className={`mac-button px-4 py-2 text-xs font-bold ${activeTheme.accent}`}>Create</button>
               </div>
             </form>
           </div>
@@ -283,12 +322,12 @@ export default function ServiceRecords() {
 
       {/* Assign Technicians Modal */}
       {showAssignModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl animate-[fadeIn_0.2s_ease]">
           <div className={`mac-card w-full max-w-md space-y-4 p-6 ${activeTheme.card}`}>
             <h3 className="text-lg font-bold">Assign Technicians</h3>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
+            <div className="space-y-1 max-h-60 overflow-y-auto">
               {technicians.map((t) => (
-                <label key={t._id} className="flex items-center gap-2 text-sm cursor-pointer p-1">
+                <label key={t._id} className={`flex items-center gap-2 text-sm cursor-pointer px-2 py-2 rounded-lg transition-colors duration-200 ${activeTheme.cardHover}`}>
                   <input
                     type="checkbox"
                     checked={selectedTechs.includes(t._id)}
@@ -298,15 +337,15 @@ export default function ServiceRecords() {
                       } else {
                         setSelectedTechs(selectedTechs.filter((id) => id !== t._id));
                       }
-                    }}  
+                    }}
                   />
                   <span>{t.email}</span>
                 </label>
               ))}
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setShowAssignModal(false)} className="px-3 py-1.5 text-xs">Cancel</button>
-              <button onClick={handleSaveTechnicians} className={`px-4 py-1.5 text-xs font-bold rounded ${activeTheme.accent}`}>Save Assignments</button>
+              <button type="button" onClick={() => setShowAssignModal(false)} className={`mac-button px-3.5 py-2 text-xs font-medium ${activeTheme.buttonSecondary}`}>Cancel</button>
+              <button onClick={handleSaveTechnicians} className={`mac-button px-4 py-2 text-xs font-bold ${activeTheme.accent}`}>Save Assignments</button>
             </div>
           </div>
         </div>

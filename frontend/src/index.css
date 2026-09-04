@@ -4,7 +4,7 @@
 @layer base {
   :root {
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
-    
+
     /* Default Dark Mode (Apple Pro Dark) */
     --bg-main: #000000;
     --bg-card: rgba(24, 24, 27, 0.6);
@@ -41,17 +41,26 @@
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: 0;
   }
+
+  /* Respect reduced-motion preference across all custom animations */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
 }
 
 /* Apple Glassmorphism & Reusable Utility Classes */
 .theme-bg { background-color: var(--bg-main); }
-.theme-card { 
-  background-color: var(--bg-card); 
+.theme-card {
+  background-color: var(--bg-card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
-.theme-sidebar { 
-  background-color: var(--bg-sidebar); 
+.theme-sidebar {
+  background-color: var(--bg-sidebar);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
@@ -59,16 +68,16 @@
 .theme-text-primary { color: var(--text-primary); }
 .theme-text-secondary { color: var(--text-secondary); }
 .theme-text-muted { color: var(--text-muted); }
-.theme-accent { 
-  background-color: var(--accent-bg); 
-  color: var(--accent-text); 
+.theme-accent {
+  background-color: var(--accent-bg);
+  color: var(--accent-text);
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 .theme-accent:active { transform: scale(0.97); }
-.theme-input { 
-  background-color: var(--input-bg); 
-  border-color: var(--border-color); 
-  color: var(--text-primary); 
+.theme-input {
+  background-color: var(--input-bg);
+  border-color: var(--border-color);
+  color: var(--text-primary);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -105,4 +114,13 @@
     background-color: var(--input-bg);
     color: var(--text-primary);
   }
+}
+
+/* ===========================================================
+   Shared entrance animation — used by Dashboard (page fade-in)
+   and Login (card + error banner fade-in)
+   =========================================================== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

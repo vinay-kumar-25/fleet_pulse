@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import axiosClient from '../api/axiosClient';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 export default function VehicleDetails() {
   const { activeTheme } = useApp();
@@ -19,12 +20,63 @@ export default function VehicleDetails() {
     return () => { mounted = false; };
   }, [id]);
 
-  if (error) return <div className="p-8 text-red-500">{error}</div>;
-  if (!data) return <div className="p-8">Loading vehicle history...</div>;
+  if (error) {
+    return (
+      <div className={`max-w-5xl mx-auto p-8 text-sm ${activeTheme.danger} mac-card mt-6`}>
+        {error}
+      </div>
+    );
+  }
 
-  return <main className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-    <Link to="/vehicles" className={`text-sm ${activeTheme.textSecondary}`}>Back to vehicles</Link>
-    <header><h1 className="text-2xl font-bold">{data.vehicle.registration_number}</h1><p className={activeTheme.textSecondary}>{data.vehicle.make} {data.vehicle.model}</p></header>
-    <div className={`mac-card overflow-x-auto ${activeTheme.card}`}><table className="w-full text-left text-sm"><thead className={`border-b ${activeTheme.border} ${activeTheme.textSecondary}`}><tr><th className="p-4">Description</th><th className="p-4">Status</th><th className="p-4">Scheduled</th><th className="p-4">Completed</th></tr></thead><tbody className={`divide-y ${activeTheme.border}`}>{data.history.map((record) => <tr key={record._id}><td className="p-4">{record.description || 'No description'}</td><td className="p-4">{record.status}</td><td className="p-4">{record.scheduled_date ? new Date(record.scheduled_date).toLocaleDateString() : 'Not scheduled'}</td><td className="p-4">{record.completed_at ? new Date(record.completed_at).toLocaleDateString() : '-'}</td></tr>)}</tbody></table></div>
-  </main>;
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 min-h-[50vh]">
+        <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+        <p className={`text-sm ${activeTheme.textSecondary}`}>Loading vehicle history…</p>
+      </div>
+    );
+  }
+
+  return (
+    <main className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 animate-[fadeIn_0.4s_ease]">
+      <Link to="/vehicles" className={`inline-flex items-center gap-1.5 text-sm hover:opacity-70 transition-opacity ${activeTheme.textSecondary}`}>
+        <ArrowLeft className="w-4 h-4" /> Back to vehicles
+      </Link>
+
+      <header>
+        <h1 className="text-2xl font-bold">{data.vehicle.registration_number}</h1>
+        <p className={activeTheme.textSecondary}>{data.vehicle.make} {data.vehicle.model}</p>
+      </header>
+
+      <div className={`mac-card overflow-x-auto ${activeTheme.card}`}>
+        <table className="w-full text-left text-sm">
+          <thead className={`border-b ${activeTheme.border} text-xs uppercase ${activeTheme.textSecondary}`}>
+            <tr>
+              <th className="p-4">Description</th>
+              <th className="p-4">Status</th>
+              <th className="p-4">Scheduled</th>
+              <th className="p-4">Completed</th>
+            </tr>
+          </thead>
+          <tbody className={`divide-y ${activeTheme.border}`}>
+            {data.history.length === 0 && (
+              <tr>
+                <td colSpan={4} className={`p-8 text-center text-sm ${activeTheme.textSecondary}`}>
+                  No service history for this vehicle yet.
+                </td>
+              </tr>
+            )}
+            {data.history.map((record) => (
+              <tr key={record._id} className={`transition-colors duration-200 ${activeTheme.cardHover}`}>
+                <td className="p-4">{record.description || 'No description'}</td>
+                <td className="p-4 capitalize">{record.status}</td>
+                <td className="p-4">{record.scheduled_date ? new Date(record.scheduled_date).toLocaleDateString() : 'Not scheduled'}</td>
+                <td className="p-4">{record.completed_at ? new Date(record.completed_at).toLocaleDateString() : '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  );
 }

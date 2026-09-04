@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import axiosClient from '../api/axiosClient';
-import { Truck, Lock, Mail } from 'lucide-react';
+import { Truck, Lock, Mail, Loader2 } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -35,62 +35,74 @@ export default function Login() {
 
   return (
     <div className={`flex min-h-[85vh] items-center justify-center px-4 ${activeTheme.gradient}`}>
-      <div className={`mac-card w-full max-w-md p-8 ${activeTheme.card}`}>
+      <div className={`mac-card w-full max-w-md p-8 animate-[fadeIn_0.4s_ease] ${activeTheme.card}`}>
         <div className="flex flex-col items-center mb-6">
-          <div className={`mb-2 rounded-full p-3 ${activeTheme.info}`}>
-            <Truck className="w-10 h-10 text-emerald-500" />
+          <div className={`mb-3 rounded-full p-3.5 ${activeTheme.info}`}>
+            <Truck className="w-9 h-9 text-emerald-500" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight">Fleet Portal Sign In</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Fleet Pulse </h2>
+          <h3 className="text-2xl font-bold text-blue-500 tracking-tight">Sign In</h3>
           <p className={`text-sm ${activeTheme.textSecondary} mt-1`}>Access your fleet service assignments</p>
         </div>
 
         {error && (
-          <div className={`mb-4 rounded-xl p-3 text-sm ${activeTheme.danger}`}>
+          <div className={`mb-4 rounded-xl p-3 text-sm animate-[fadeIn_0.2s_ease] ${activeTheme.danger}`}>
             {typeof error === 'string' ? error : error?.message || 'Login failed'}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className={`block text-xs font-semibold mb-1 uppercase tracking-wider ${activeTheme.textSecondary}`}>
-              Email Address
+          <div className="relative">
+            <Mail className="w-4.5 h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 peer-focus:text-blue-400 transition-colors" />
+            <input
+              id="login-email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder=" "
+              className={`peer mac-input w-full pt-5 pb-2 pl-10 pr-4 text-sm ${activeTheme.input}`}
+            />
+            <label
+              htmlFor="login-email"
+              className={`pointer-events-none absolute left-10 top-1/2 -translate-y-1/2 text-sm transition-all duration-200
+                peer-focus:top-3 peer-focus:-translate-y-0 peer-focus:text-[11px] peer-focus:font-medium
+                peer-[&:not(:placeholder-shown)]:top-3 peer-[&:not(:placeholder-shown)]:-translate-y-0 peer-[&:not(:placeholder-shown)]:text-[11px] peer-[&:not(:placeholder-shown)]:font-medium
+                ${activeTheme.textSecondary}`}
+            >
+              Email address
             </label>
-            <div className="relative">
-              <Mail className="w-5 h-5 absolute left-3 top-2.5 text-zinc-500" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`mac-input w-full py-2 pl-10 pr-4 text-sm ${activeTheme.input}`}
-                placeholder="manager@fleet.com"
-              />
-            </div>
           </div>
 
-          <div>
-            <label className={`block text-xs font-semibold mb-1 uppercase tracking-wider ${activeTheme.textSecondary}`}>
+          <div className="relative">
+            <Lock className="w-4.5 h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 peer-focus:text-blue-400 transition-colors" />
+            <input
+              id="login-password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder=" "
+              className={`peer mac-input w-full pt-5 pb-2 pl-10 pr-4 text-sm ${activeTheme.input}`}
+            />
+            <label
+              htmlFor="login-password"
+              className={`pointer-events-none absolute left-10 top-1/2 -translate-y-1/2 text-sm transition-all duration-200
+                peer-focus:top-3 peer-focus:-translate-y-0 peer-focus:text-[11px] peer-focus:font-medium
+                peer-[&:not(:placeholder-shown)]:top-3 peer-[&:not(:placeholder-shown)]:-translate-y-0 peer-[&:not(:placeholder-shown)]:text-[11px] peer-[&:not(:placeholder-shown)]:font-medium
+                ${activeTheme.textSecondary}`}
+            >
               Password
             </label>
-            <div className="relative">
-              <Lock className="w-5 h-5 absolute left-3 top-2.5 text-zinc-500" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`mac-input w-full py-2 pl-10 pr-4 text-sm ${activeTheme.input}`}
-                placeholder="••••••••"
-              />
-            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className={`mac-button w-full py-3 text-sm font-semibold ${activeTheme.button}`}
+            className={`mac-button w-full py-3 text-sm font-semibold flex items-center justify-center gap-2 ${activeTheme.button}`}
           >
-            {loading ? 'Authenticating...' : 'Sign In'}
+            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+            {loading ? 'Authenticating…' : 'Sign In'}
           </button>
         </form>
       </div>

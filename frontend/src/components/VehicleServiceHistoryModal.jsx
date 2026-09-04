@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import axiosClient from '../api/axiosClient';
-import { Download, ChevronDown, ChevronRight, X, ShieldCheck } from 'lucide-react';
+import { Download, ChevronDown, ChevronRight, X, ShieldCheck, Loader2 } from 'lucide-react';
 
 export default function VehicleServiceHistoryModal({ vehicle, onClose }) {
   const { activeTheme } = useApp();
@@ -35,7 +35,6 @@ export default function VehicleServiceHistoryModal({ vehicle, onClose }) {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  // CSV Export Handler
   const exportToCSV = () => {
     if (!history.length) return;
 
@@ -61,10 +60,9 @@ export default function VehicleServiceHistoryModal({ vehicle, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl animate-[fadeIn_0.2s_ease]">
       <div className={`mac-card w-full max-w-3xl max-h-[85vh] flex flex-col ${activeTheme.card}`}>
-        
-        {/* Modal Header */}
+
         <div className={`p-5 border-b ${activeTheme.border} flex items-center justify-between`}>
           <div>
             <div className="flex items-center gap-2">
@@ -91,35 +89,36 @@ export default function VehicleServiceHistoryModal({ vehicle, onClose }) {
           </div>
         </div>
 
-        {/* Modal Content / Timeline */}
         <div className="p-5 overflow-y-auto space-y-3 flex-1">
           {loading ? (
-            <div className="text-center py-8 text-zinc-500 text-sm">Loading vehicle records...</div>
+            <div className={`flex flex-col items-center gap-2 py-10 text-sm ${activeTheme.textSecondary}`}>
+              <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
+              Loading vehicle records…
+            </div>
           ) : history.length === 0 ? (
-            <div className={`text-center py-8 ${activeTheme.textSecondary} text-sm`}>No service records found for this vehicle.</div>
+            <div className={`text-center py-10 ${activeTheme.textSecondary} text-sm`}>No service records found for this vehicle.</div>
           ) : (
             history.map((record) => {
               const isExpanded = expandedId === record._id;
               return (
-                <div key={record._id} className={`overflow-hidden rounded-2xl border ${activeTheme.border} ${activeTheme.input}`}>
-                  
-                  {/* Collapsible Row Header */}
+                <div key={record._id} className={`overflow-hidden rounded-2xl border transition-colors duration-200 ${activeTheme.border} ${activeTheme.input}`}>
+
                   <button
                     onClick={() => toggleExpand(record._id)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-zinc-800/40 transition text-left"
+                    className={`w-full p-4 flex items-center justify-between transition-colors duration-200 text-left ${activeTheme.cardHover}`}
                   >
                     <div className="flex items-center gap-3">
-                      {isExpanded ? <ChevronDown className="w-4 h-4 text-zinc-400" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />}
+                      {isExpanded ? <ChevronDown className={`w-4 h-4 ${activeTheme.textMuted}`} /> : <ChevronRight className={`w-4 h-4 ${activeTheme.textMuted}`} />}
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs px-2 py-0.5 rounded font-semibold uppercase ${
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold uppercase ${
                             record.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400' :
                             record.status === 'in_service' ? 'bg-blue-500/10 text-blue-400' :
                             record.status === 'booked' ? 'bg-amber-500/10 text-amber-400' : 'bg-red-500/10 text-red-400'
                           }`}>
                             {record.status.replace('_', ' ')}
                           </span>
-                          <span className="text-xs text-zinc-400">
+                          <span className={`text-xs ${activeTheme.textMuted}`}>
                             Completed: {record.completed_at ? new Date(record.completed_at).toLocaleDateString() : 'Pending'}
                           </span>
                         </div>
@@ -127,17 +126,16 @@ export default function VehicleServiceHistoryModal({ vehicle, onClose }) {
                     </div>
 
                     <div className="text-right">
-                      <span className="text-xs text-zinc-500 font-mono">
+                      <span className={`text-xs font-mono ${activeTheme.textMuted}`}>
                         {record.completed_odometer ? `${record.completed_odometer.toLocaleString()} km` : '—'}
                       </span>
                     </div>
                   </button>
 
-                  {/* Expanded Detail Panel */}
                   {isExpanded && (
-                    <div className={`space-y-3 border-t p-4 text-xs ${activeTheme.border} ${activeTheme.card}`}>
+                    <div className={`space-y-3 border-t p-4 text-xs animate-[fadeIn_0.2s_ease] ${activeTheme.border} ${activeTheme.card}`}>
                       <div>
-                        <strong className="text-zinc-400 block mb-1">Admin / Manager Description:</strong>
+                        <strong className={`block mb-1 ${activeTheme.textSecondary}`}>Admin / Manager Description:</strong>
                         <p className={`rounded-xl border p-3 font-mono ${activeTheme.border} ${activeTheme.input}`}>
                           {record.description || 'No description provided.'}
                         </p>

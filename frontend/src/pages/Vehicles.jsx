@@ -3,7 +3,7 @@ import { useApp } from "../context/AppContext";
 import { Link } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 import VehicleServiceHistoryModal from "../components/VehicleServiceHistoryModal";
-import { Plus, Edit2, Archive, RefreshCw, FileUp } from "lucide-react";
+import { Plus, Edit2, Archive, RefreshCw, FileUp, Car } from "lucide-react";
 
 export default function Vehicles() {
   const { activeTheme } = useApp();
@@ -125,8 +125,8 @@ export default function Vehicles() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 animate-[fadeIn_0.4s_ease]">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h1 className="text-2xl font-bold">Fleet Vehicles</h1>
           <p className={`text-sm ${activeTheme.textSecondary}`}>
@@ -135,7 +135,7 @@ export default function Vehicles() {
         </div>
         <button
           onClick={handleOpenCreate}
-          className={`flex items-center gap-2 px-4 py-2 rounded font-bold text-sm ${activeTheme.accent}`}
+          className={`mac-button flex items-center gap-2 px-4 py-2.5 text-sm font-semibold ${activeTheme.button}`}
         >
           <Plus className="w-4 h-4" /> Add Vehicle
         </button>
@@ -154,10 +154,7 @@ export default function Vehicles() {
         </label>
       </div>
 
-      {/* 7. View all vehicles and complete fleet data */}
-      <div
-        className={`mac-card overflow-x-auto ${activeTheme.card}`}
-      >
+      <div className={`mac-card overflow-x-auto ${activeTheme.card}`}>
         <table className="w-full text-left text-sm">
           <thead
             className={`border-b ${activeTheme.border} text-xs uppercase ${activeTheme.textSecondary}`}
@@ -172,8 +169,18 @@ export default function Vehicles() {
             </tr>
           </thead>
           <tbody className={`divide-y ${activeTheme.border}`}>
+            {vehicles.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-10 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Car className={`w-6 h-6 ${activeTheme.textMuted}`} />
+                    <span className={`text-sm ${activeTheme.textSecondary}`}>No vehicles to show.</span>
+                  </div>
+                </td>
+              </tr>
+            )}
             {vehicles.map((v) => (
-              <tr key={v._id}>
+              <tr key={v._id} className={`transition-colors duration-200 ${activeTheme.cardHover}`}>
                 <td className="p-4 font-bold"><Link to={`/vehicles/${v._id}`} className="hover:underline">{v.registration_number}</Link></td>
                 <td className="p-4">{v.make} {v.model}</td>
                 <td className="p-4">
@@ -185,7 +192,7 @@ export default function Vehicles() {
                 </td>
                 <td className="p-4">
                   <span
-                    className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                    className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
                       v.is_archived
                         ? "bg-zinc-800 text-zinc-400"
                         : "bg-emerald-500/10 text-emerald-400"
@@ -194,30 +201,32 @@ export default function Vehicles() {
                     {v.is_archived ? "Archived" : "Active"}
                   </span>
                 </td>
-                <td className="p-4 text-right flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setHistoryVehicle(v)}
-                    className="p-1 text-xs hover:text-emerald-400"
-                  >
-                    History
-                  </button>
-                  <button
-                    onClick={() => handleOpenEdit(v)}
-                    className="mac-icon-button hover:text-blue-400"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => toggleArchive(v._id, v.is_archived)}
-                    className="mac-icon-button hover:text-amber-400"
-                  >
-                    {v.is_archived ? (
-                      <RefreshCw className="w-4 h-4" />
-                    ) : (
-                      <Archive className="w-4 h-4" />
-                    )}
-                  </button>
+                <td className="p-4 text-right">
+                  <div className="flex justify-end items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setHistoryVehicle(v)}
+                      className={`px-2 py-1 text-xs font-medium rounded-lg hover:opacity-70 transition-opacity ${activeTheme.textSecondary}`}
+                    >
+                      History
+                    </button>
+                    <button
+                      onClick={() => handleOpenEdit(v)}
+                      className="mac-icon-button hover:text-blue-400"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => toggleArchive(v._id, v.is_archived)}
+                      className="mac-icon-button hover:text-amber-400"
+                    >
+                      {v.is_archived ? (
+                        <RefreshCw className="w-4 h-4" />
+                      ) : (
+                        <Archive className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -225,18 +234,16 @@ export default function Vehicles() {
         </table>
       </div>
 
-      {/* 2 & 3. Create/Edit Vehicle Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xl animate-[fadeIn_0.2s_ease]">
           <div
-            className={`mac-card w-full max-w-md space-y-4 p-6 ${activeTheme.card}`}
+            className={`mac-card w-full max-w-md space-y-4 p-6 max-h-[90vh] overflow-y-auto ${activeTheme.card}`}
           >
             <h3 className="text-lg font-bold">
               {editingVehicle ? "Edit Vehicle" : "Create New Vehicle"}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-              {/* Basic Info Section */}
               <div className="space-y-3">
                 <div>
                   <label className="block font-medium mb-1">
@@ -305,8 +312,7 @@ export default function Vehicles() {
                 </div>
               </div>
 
-              {/* Maintenance Intervals Section */}
-              <div className={`border-t pt-2 ${activeTheme.border}`}>
+              <div className={`border-t pt-3 ${activeTheme.border}`}>
                 <p
                   className={`font-semibold mb-2 ${activeTheme.textSecondary}`}
                 >
@@ -330,7 +336,7 @@ export default function Vehicles() {
                       className={`mac-input w-full p-3 ${activeTheme.input}`}
                       required
                     />
-                    <span className="text-[10px] text-zinc-400">
+                    <span className={`text-[10px] ${activeTheme.textMuted}`}>
                       Mileage limit before alert
                     </span>
                   </div>
@@ -352,25 +358,24 @@ export default function Vehicles() {
                       className={`mac-input w-full p-3 ${activeTheme.input}`}
                       required
                     />
-                    <span className="text-[10px] text-zinc-400">
+                    <span className={`text-[10px] ${activeTheme.textMuted}`}>
                       Time limit before alert
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Form Actions */}
               <div className={`flex justify-end gap-2 border-t pt-3 ${activeTheme.border}`}>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className={`mac-button px-4 py-2 text-xs ${activeTheme.buttonSecondary}`}
+                  className={`mac-button px-4 py-2 text-xs font-medium ${activeTheme.buttonSecondary}`}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`px-4 py-2 text-xs font-bold rounded ${activeTheme.accent}`}
+                  className={`mac-button px-4 py-2 text-xs font-bold ${activeTheme.accent}`}
                 >
                   {editingVehicle ? "Update Vehicle" : "Create Vehicle"}
                 </button>
@@ -380,13 +385,19 @@ export default function Vehicles() {
         </div>
       )}
 
-      <section className={`mac-card p-4 ${activeTheme.card}`}>
+      <section className={`mac-card p-5 ${activeTheme.card}`}>
         <h2 className="font-bold mb-3">Bulk odometer update</h2>
-        <form onSubmit={handleCSVSubmit} className="flex flex-wrap gap-2">
+        <form onSubmit={handleCSVSubmit} className="flex flex-wrap items-center gap-2">
           <input type="file" accept=".csv" required onChange={(event) => setCsvFile(event.target.files[0])} className={`mac-input text-xs p-2 ${activeTheme.input}`} />
-          <button type="submit" className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-bold ${activeTheme.accent}`}><FileUp className="w-4 h-4" /> Upload CSV</button>
+          <button type="submit" className={`mac-button flex items-center gap-2 px-3.5 py-2 text-xs font-bold ${activeTheme.accent}`}><FileUp className="w-4 h-4" /> Upload CSV</button>
         </form>
-        {uploadReport && <div className="mt-3 space-y-1 text-xs">{uploadReport.map((row) => <div key={row.row}>{row.registration_number}: {row.status}{row.reason ? ` - ${row.reason}` : ''}</div>)}</div>}
+        {uploadReport && (
+          <div className={`mt-3 space-y-1 text-xs rounded-xl p-3 ${activeTheme.input}`}>
+            {uploadReport.map((row) => (
+              <div key={row.row}>{row.registration_number}: {row.status}{row.reason ? ` — ${row.reason}` : ''}</div>
+            ))}
+          </div>
+        )}
       </section>
 
       {historyVehicle && (

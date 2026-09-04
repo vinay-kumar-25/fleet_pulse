@@ -29,15 +29,17 @@ export default function Navbar() {
     : [{ name: 'My Assignments', path: '/my-assignments', icon: ClipboardList }];
 
   return (
-    <nav className={`sticky top-0 z-50 border-b ${activeTheme.border} ${activeTheme.sidebarBg} backdrop-blur-2xl`}>
+    <nav className={`sticky top-0 z-50 border-b transition-colors duration-300 ${activeTheme.border} ${activeTheme.sidebarBg} backdrop-blur-2xl`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
-            <Truck className="h-7 w-7 text-emerald-500" />
-            <span className={`font-bold text-lg tracking-wider ${activeTheme.textPrimary}`}>FLEET-PULSE </span>
+          <div className="flex items-center gap-2.5">
+            <span className={`flex items-center justify-center w-9 h-9 rounded-xl ${activeTheme.accent}`}>
+              <Truck className="h-4.5 w-4.5" />
+            </span>
+            <span className={`font-bold text-lg tracking-wider ${activeTheme.textPrimary}`}>FLEET-PULSE</span>
           </div>
 
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = location.pathname === link.path;
@@ -45,14 +47,14 @@ export default function Navbar() {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-95 ${
-                    isActive ? activeTheme.accent : `${activeTheme.textSecondary} hover:${activeTheme.textPrimary}`
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 active:scale-95 ${
+                    isActive ? activeTheme.accent : `${activeTheme.textSecondary} hover:opacity-70`
                   }`}
                 >
                   <Icon className="w-4 h-4" />
                   {link.name}
                   {link.badge > 0 && (
-                    <span className="ml-1 px-1.5 py-0.5 text-xs font-bold bg-red-500/15 text-red-500 rounded-full">
+                    <span className="ml-0.5 min-w-[18px] px-1.5 py-0.5 text-[10px] font-bold bg-red-500/15 text-red-500 rounded-full text-center leading-none">
                       {link.badge}
                     </span>
                   )}
@@ -62,12 +64,12 @@ export default function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <div className="flex items-center gap-1 text-xs">
-              <Palette className={`w-4 h-4 mr-1 ${activeTheme.textSecondary}`} />
+            <div className="flex items-center gap-1.5 text-xs">
+              <Palette className={`w-4 h-4 ${activeTheme.textSecondary}`} />
               <select
                 value={currentThemeKey}
                 onChange={(e) => setTheme(e.target.value)}
-                className={`mac-input text-xs p-1.5 ${activeTheme.input}`}
+                className={`mac-input text-xs py-1.5 pl-2 pr-6 cursor-pointer ${activeTheme.input}`}
               >
                 {Object.keys(themes).map((key) => (
                   <option key={key} value={key}>
@@ -77,11 +79,12 @@ export default function Navbar() {
               </select>
             </div>
 
-            <div className="text-right text-xs">
+            <div className="text-right text-xs leading-tight">
               <div className={`font-semibold ${activeTheme.textPrimary}`}>{user.email}</div>
-<div className={`${activeTheme.textSecondary} capitalize`}>
-  {user?.role?.replace('_', ' ') || 'User'}
-</div>            </div>
+              <div className={`${activeTheme.textSecondary} capitalize`}>
+                {user?.role?.replace('_', ' ') || 'User'}
+              </div>
+            </div>
 
             <button
               onClick={handleLogout}
@@ -96,24 +99,26 @@ export default function Navbar() {
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="mac-icon-button"
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             >
-              {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className={`md:hidden border-t ${activeTheme.border} ${activeTheme.sidebarBg} backdrop-blur-2xl px-4 pt-2 pb-4 space-y-2`}>
+        <div className={`md:hidden border-t animate-[fadeIn_0.2s_ease] ${activeTheme.border} ${activeTheme.sidebarBg} backdrop-blur-2xl px-4 pt-2 pb-4 space-y-1.5`}>
           {navLinks.map((link) => {
             const Icon = link.icon;
+            const isActive = location.pathname === link.path;
             return (
               <Link
                 key={link.path}
                 to={link.path}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center justify-between px-3 py-2 rounded-full text-base font-medium transition-all duration-200 active:scale-95 ${
-                  location.pathname === link.path ? activeTheme.accent : activeTheme.textSecondary
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-full text-base font-medium transition-all duration-200 active:scale-95 ${
+                  isActive ? activeTheme.accent : activeTheme.textSecondary
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -128,11 +133,11 @@ export default function Navbar() {
               </Link>
             );
           })}
-          <div className={`pt-4 border-t ${activeTheme.border} flex items-center justify-between`}>
+          <div className={`pt-4 mt-2 border-t ${activeTheme.border} flex items-center justify-between`}>
             <select
               value={currentThemeKey}
               onChange={(e) => setTheme(e.target.value)}
-              className={`mac-input text-sm p-1.5 ${activeTheme.input}`}
+              className={`mac-input text-sm py-1.5 px-2 ${activeTheme.input}`}
             >
               {Object.keys(themes).map((key) => (
                 <option key={key} value={key}>
